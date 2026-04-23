@@ -365,6 +365,18 @@
       })
       
       /* Tables interactions */
+      function nestedId(value){
+        return value && value.id ? value.id : ''
+      }
+
+      function nestedText(value, field){
+        if (!value || value == 'None'){
+          return ''
+        }
+        const nestedValue = value[field]
+        return (!nestedValue || nestedValue == 'None') ? '' : nestedValue
+      }
+
       $('#table_workers tbody').on('click','tr',function(){
         let line = table_workers.row(this).data()
         table_workers.$('tr.selected').removeClass('selected');
@@ -402,10 +414,10 @@
         else {
           $('#div_retiro').show()
           $('#btn-modify-worker').hide()
-          if (line.fecha_retiro != "None") {
-            motivo_real = line.contrato_activo.motivo_retiro_real == "None" ? "" : line.contrato_activo.motivo_retiro
+          if (line.contrato_activo && line.contrato_activo.fecha_retiro != "None") {
+            motivo_real = line.contrato_activo.motivo_retiro_real == "None" ? "" : line.contrato_activo.motivo_retiro_real
             $('#div_id_fecha_retiro').calendar('set date', line.contrato_activo.fecha_retiro)
-            $('#id_motivo_retiro').dropdown('set value', line.contrato_activo.motivo_retiro.id)
+            $('#id_motivo_retiro').dropdown('set value', nestedId(line.contrato_activo.motivo_retiro))
             $('#id_motivo_retiro_real').val(motivo_real)
           }
         }
@@ -460,7 +472,7 @@
         $('#id_tipo_ingreso').dropdown('set value',line.contrato_activo.tipo_ingreso)
         $('#id_titulo').val(line.titulo)
         $('#id_empleador').dropdown('set value',line.contrato_activo.empleador.id)
-        $('#id_temporal').dropdown('set value',line.contrato_activo.temporal.id)
+        $('#id_temporal').dropdown('set value', nestedId(line.contrato_activo.temporal))
         $('#id_modalidad_ingreso').dropdown('set value',line.contrato_activo.modalidad_ingreso)
         $('#id_tipo_contrato').dropdown('set value',line.contrato_activo.tipo_contrato)
         $('#div_id_fecha_inicio').calendar('set date',line.contrato_activo.fecha_inicio)
@@ -509,11 +521,11 @@
             })
           }
         })
-        $('#id_canal').dropdown('set value',line.contrato_activo.canal.id)
-        $('#id_cceco').dropdown('set value',line.contrato_activo.cceco.id)
-        $('#id_sede').dropdown('set value',line.contrato_activo.sede.id)
-        $('#id_canal').dropdown('set value',line.contrato_activo.canal.id)
-        $('#id_jefe_inmediato').dropdown('set value',line.contrato_activo.jefe_inmediato.id)
+        $('#id_canal').dropdown('set value', nestedId(line.contrato_activo.canal))
+        $('#id_cceco').dropdown('set value', nestedId(line.contrato_activo.cceco))
+        $('#id_sede').dropdown('set value', nestedId(line.contrato_activo.sede))
+        $('#id_canal').dropdown('set value', nestedId(line.contrato_activo.canal))
+        $('#id_jefe_inmediato').dropdown('set value', nestedId(line.contrato_activo.jefe_inmediato))
         $('#id_salario_base').val(
           new Intl.NumberFormat('en-EN').format(line.contrato_activo.salario_base)
         )
@@ -660,7 +672,7 @@
                   $('#id_tipo_riesgo').dropdown('set value',line.tipo_riesgo)
                   $('#id_tipo_ingreso').dropdown('set value',line.contrato_activo.tipo_ingreso)
                   $('#id_empleador').dropdown('set value',line.contrato_activo.empleador.id)
-                  $('#id_temporal').dropdown('set value',line.contrato_activo.temporal.id)
+                  $('#id_temporal').dropdown('set value', nestedId(line.contrato_activo.temporal))
                   $('#id_modalidad_ingreso').dropdown('set value',line.contrato_activo.modalidad_ingreso)
                   $('#id_tipo_contrato').dropdown('set value',line.contrato_activo.tipo_contrato)
                   $('#div_id_fecha_inicio').calendar('set date',line.contrato_activo.fecha_inicio)
@@ -709,11 +721,11 @@
                       })
                     }
                   })
-                  $('#id_canal').dropdown('set value',line.contrato_activo.canal.id)
-                  $('#id_cceco').dropdown('set value',line.contrato_activo.cceco.id)
-                  $('#id_sede').dropdown('set value',line.contrato_activo.sede.id)
-                  $('#id_canal').dropdown('set value',line.contrato_activo.canal.id)
-                  $('#id_jefe_inmediato').dropdown('set value',line.contrato_activo.jefe_inmediato.id)
+                  $('#id_canal').dropdown('set value', nestedId(line.contrato_activo.canal))
+                  $('#id_cceco').dropdown('set value', nestedId(line.contrato_activo.cceco))
+                  $('#id_sede').dropdown('set value', nestedId(line.contrato_activo.sede))
+                  $('#id_canal').dropdown('set value', nestedId(line.contrato_activo.canal))
+                  $('#id_jefe_inmediato').dropdown('set value', nestedId(line.contrato_activo.jefe_inmediato))
                   $('#id_salario_base').val(
                     new Intl.NumberFormat('en-EN').format(line.contrato_activo.salario_base)
                   )
@@ -780,178 +792,196 @@
               case "historiales":
                 $('#contracts-accordion').empty();
                 $('#feed-worker-actions').empty();
-                contratos = line.historico_contratos
-                numberfmt = new Intl.NumberFormat('en-EN')
-                i = contratos.length
-                for (let contrato of contratos){
-                  active = i == contratos.length ? ' active':""
-                  hasta = contrato.activo_hasta == 'None' ? 'Actual' : contrato.activo_hasta
-                  jefe_inmediato = contrato.jefe_inmediato.primer_nombre + ' ' + contrato.jefe_inmediato.primer_apellido
-                  title = `
-                  <div class="title${active}">
-                    <i class="dropdown icon"></i>
-                    <strong>#${i}</strong> - DESDE ${contrato.activo_desde} HASTA ${hasta}
-                  </div>
-                  `
-                  content = `
-                  <div class="content${active}">
-                    <form class="ui form">
-                      <div class="fields">
-                        <div class="two wide field">
-                          <label>Tipo Ingreso</label>
-                            <input readonly="" type="text" value="${contrato.tipo_ingreso}">
-                        </div>
-                        <div class="four wide field">
-                          <label>Empleador</label>
-                            <input readonly="" type="text" value="${contrato.empleador.nombre}">
-                        </div>
-                        <div class="four wide field">
-                          <label>Temporal</label>
-                            <input readonly="" type="text" value="${contrato.temporal.nombre}">
-                        </div>
-                        <div class="six wide field">
-                          <label>Modalidad ingreso</label>
-                            <input readonly="" type="text" value="${contrato.modalidad_ingreso}">
+                $.ajax({
+                  url: `/humanresources/workers`,
+                  type: 'GET',
+                  data: {
+                    todo: 'getworkerhistory',
+                    numero_id: line.numero_identificacion
+                  },
+                  success: function(response){
+                    const contratos = response.historico_contratos || []
+                    const numberfmt = new Intl.NumberFormat('en-EN')
+                    let i = contratos.length
+                    for (let contrato of contratos){
+                      const active = i == contratos.length ? ' active':""
+                      const hasta = contrato.activo_hasta == 'None' ? 'Actual' : contrato.activo_hasta
+                      const jefe_inmediato = contrato.jefe_inmediato ? `${nestedText(contrato.jefe_inmediato, 'primer_nombre')} ${nestedText(contrato.jefe_inmediato, 'primer_apellido')}`.trim() : ''
+                      let title = `
+                      <div class="title${active}">
+                        <i class="dropdown icon"></i>
+                        <strong>#${i}</strong> - DESDE ${contrato.activo_desde} HASTA ${hasta}
+                      </div>
+                      `
+                      let content = `
+                      <div class="content${active}">
+                        <form class="ui form">
+                          <div class="fields">
+                            <div class="two wide field">
+                              <label>Tipo Ingreso</label>
+                                <input readonly="" type="text" value="${contrato.tipo_ingreso}">
+                            </div>
+                            <div class="four wide field">
+                              <label>Empleador</label>
+                                <input readonly="" type="text" value="${contrato.empleador.nombre}">
+                            </div>
+                            <div class="four wide field">
+                              <label>Temporal</label>
+                                <input readonly="" type="text" value="${nestedText(contrato.temporal, 'nombre')}">
+                            </div>
+                            <div class="six wide field">
+                              <label>Modalidad ingreso</label>
+                                <input readonly="" type="text" value="${contrato.modalidad_ingreso}">
+                            </div>
+                          </div>
+
+                        <div class="four fields">
+                          <div class="four wide field">
+                              <label>Tipo contrato</label>
+                                <input readonly="" type="text" value="${contrato.tipo_contrato}">
+                            </div>
+                          <div class="field">
+                            <label>Fecha inicio (contrato)</label>
+                              <input readonly="" type="text" value="${contrato.fecha_inicio}">
+                          </div>
+                          <div class="field">
+                            <label>Fecha periodo prueba</label>
+                              <input readonly="" type="text" value="${contrato.fecha_periodo_prueba}">
+                          </div>
+                          <div class="field">
+                            <label>Fecha fin (contrato)</label>
+                              <input readonly="" type="text" value="${contrato.fecha_fin}">
+                          </div>
                         </div>
                         
-                      </div>
+                        <div class="three fields">
+                          <div class="field">
+                            <label>Estructura</label>
+                              <input readonly="" type="text" value="${contrato.area.estructura.descripcion}">
+                          </div>
+                          <div class="field">
+                            <label>Area</label>
+                              <input readonly="" type="text" value="${contrato.area.descripcion}">
+                          </div>
+                          <div class="field">
+                            <label>Cargo</label>
+                              <input readonly="" type="text" value="${contrato.cargo.descripcion}">
+                          </div>
+                        </div>
 
-                    <div class="four fields">
-                      <div class="four wide field">
-                          <label>Tipo contrato</label>
-                            <input readonly="" type="text" value="${contrato.tipo_contrato}">
-                        </div>
-                      <div class="field">
-                        <label>Fecha inicio (contrato)</label>
-                          <input readonly="" type="text" value="${contrato.fecha_inicio}">
-                      </div>
-                      <div class="field">
-                        <label>Fecha periodo prueba</label>
-                          <input readonly="" type="text" value="${contrato.fecha_periodo_prueba}">
-                      </div>
-                      <div class="field">
-                        <label>Fecha fin (contrato)</label>
-                          <input readonly="" type="text" value="${contrato.fecha_fin}">
-                      </div>
-                    </div>
-                    
-                    <div class="three fields">
-                      <div class="field">
-                        <label>Estructura</label>
-                          <input readonly="" type="text" value="${contrato.area.estructura.descripcion}">
-                      </div>
-                      <div class="field">
-                        <label>Area</label>
-                          <input readonly="" type="text" value="${contrato.area.descripcion}">
-                      </div>
-                      <div class="field">
-                        <label>Cargo</label>
-                          <input readonly="" type="text" value="${contrato.cargo.descripcion}">
-                      </div>
-                    </div>
-
-                    <div class="fields">
-                        <div class="three wide field">
-                          <label>Canal</label>
-                            <input readonly="" type="text" value="${contrato.canal.descripcion}">
-                        </div>
-                        <div class="five wide field">
-                          <label>Centro de costo</label>
-                            <input readonly="" type="text" value="${contrato.cceco.descripcion}">
-                        </div>
-                        <div class="three wide field">
-                          <label>Sede</label>
-                            <input readonly="" type="text" value="${contrato.sede.descripcion}">
-                        </div>
-                        <div class="five wide field">
-                          <label>Jefe inmediato</label>
-                            <input readonly="" type="text" value="${jefe_inmediato}">
-                        </div>
-                      </div>
-
-                      <div class="fields">
-                        <div class="four wide field">
-                          <label>Salario base</label>
-                            <input readonly="" type="text" value="${numberfmt.format(
-                              contrato.salario_base=="None"?0:contrato.salario_base)}">
-                        </div>
-                        <div class="five wide field">
-                          <label>Auxilio de transporte</label>
-                            <input readonly="" type="text" value="${numberfmt.format(
-                              contrato.auxilio_transporte=="None"?0:contrato.auxilio_transporte)}">
-                        </div>
-                        <div class="three wide field">
-                          <label>Bonificacion</label>
-                            <input readonly="" type="text" value="${contrato.bonificacion}">
-                        </div>
-                        <div class="five wide field">
-                          <label>Base bonificacion</label>
-                            <input readonly="" type="text" value="${numberfmt.format(
-                              contrato.base_bonificacion=="None"?0:contrato.base_bonificacion)}">
-                        </div>
-                      </div>
-                  `
-                  var auxilios = contrato.auxilios_contrato
-                  if (auxilios.length > 0) {
-                    tabla = `
-                    <table class="ui very compact celled table" style="display: table !important;">
-                      <thead>
-                        <tr>
-                          <th style="width:60%">Auxilio</th>
-                          <th style="width:40%">Valor</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                    `
-                    for (aux of auxilios){
-                      texto = aux.tipo.descripcion
-                      valor = new Intl.NumberFormat('en-EN').format(aux.valor)
-                      tabla += `
-                        <tr>
-                          <td>
-                            <div class="ui transparent readonly input text-center">
-                              <input type="text" value="${texto}" readonly="">
+                        <div class="fields">
+                            <div class="three wide field">
+                              <label>Canal</label>
+                                <input readonly="" type="text" value="${nestedText(contrato.canal, 'descripcion')}">
                             </div>
-                          </td>
-                          <td class="text-center">
-                            <div class="ui transparent readonly input text-center">
-                              <input type="text" class="text-center" value="${valor}" readonly>
+                            <div class="five wide field">
+                              <label>Centro de costo</label>
+                                <input readonly="" type="text" value="${nestedText(contrato.cceco, 'descripcion')}">
                             </div>
-                          </td>
-                      </tr>
+                            <div class="three wide field">
+                              <label>Sede</label>
+                                <input readonly="" type="text" value="${nestedText(contrato.sede, 'descripcion')}">
+                            </div>
+                            <div class="five wide field">
+                              <label>Jefe inmediato</label>
+                                <input readonly="" type="text" value="${jefe_inmediato}">
+                            </div>
+                          </div>
+
+                          <div class="fields">
+                            <div class="four wide field">
+                              <label>Salario base</label>
+                                <input readonly="" type="text" value="${numberfmt.format(
+                                  contrato.salario_base=="None"?0:contrato.salario_base)}">
+                            </div>
+                            <div class="five wide field">
+                              <label>Auxilio de transporte</label>
+                                <input readonly="" type="text" value="${numberfmt.format(
+                                  contrato.auxilio_transporte=="None"?0:contrato.auxilio_transporte)}">
+                            </div>
+                            <div class="three wide field">
+                              <label>Bonificacion</label>
+                                <input readonly="" type="text" value="${contrato.bonificacion}">
+                            </div>
+                            <div class="five wide field">
+                              <label>Base bonificacion</label>
+                                <input readonly="" type="text" value="${numberfmt.format(
+                                  contrato.base_bonificacion=="None"?0:contrato.base_bonificacion)}">
+                            </div>
+                          </div>
                       `
+                      const auxilios = contrato.auxilios_contrato || []
+                      if (auxilios.length > 0) {
+                        let tabla = `
+                        <table class="ui very compact celled table" style="display: table !important;">
+                          <thead>
+                            <tr>
+                              <th style="width:60%">Auxilio</th>
+                              <th style="width:40%">Valor</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                        `
+                        for (let aux of auxilios){
+                          const texto = aux.tipo.descripcion
+                          const valor = new Intl.NumberFormat('en-EN').format(aux.valor)
+                          tabla += `
+                            <tr>
+                              <td>
+                                <div class="ui transparent readonly input text-center">
+                                  <input type="text" value="${texto}" readonly="">
+                                </div>
+                              </td>
+                              <td class="text-center">
+                                <div class="ui transparent readonly input text-center">
+                                  <input type="text" class="text-center" value="${valor}" readonly>
+                                </div>
+                              </td>
+                          </tr>
+                          `
+                        }
+                        tabla += '</tbody></table>'
+                        content += tabla
+                      }
+                      content += '</form></div>'
+                      i --
+                      $('#contracts-accordion').append(title).append(content)
                     }
-                    tabla += '</tbody></table>'
-                    content += tabla+'</form></div>'
-                  }
-                  i --
-                  $('#contracts-accordion').append(title).append(content)
-                }
-                /* $('#contracts-accordion').accordion() */
-                
-                let feedactions = line.historico_acciones
-                for (let accion of feedactions) {
-                  feedcontent = `
-                  <div class="event">
-                    <div class="label">
-                      <img src="/media/${accion.profile_user.avatar}">
-                    </div>
-                    <div class="content">
-                      <div class="summary">
-                        <a class="user">
-                          ${accion.profile_user.nombre_completo}
-                        </a> ${accion.texto}
-                        <div class="date">
-                          ${accion.since}
+
+                    const feedactions = response.historico_acciones || []
+                    for (let accion of feedactions) {
+                      const feedcontent = `
+                      <div class="event">
+                        <div class="label">
+                          <img src="/media/${accion.profile_user.avatar}">
+                        </div>
+                        <div class="content">
+                          <div class="summary">
+                            <a class="user">
+                              ${accion.profile_user.nombre_completo}
+                            </a> ${accion.texto}
+                            <div class="date">
+                              ${accion.since}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                  `
-                  $('#feed-worker-actions').append(feedcontent)
-                }
-                
-                $('#modal-historico').modal('show')
+                      `
+                      $('#feed-worker-actions').append(feedcontent)
+                    }
+
+                    $('#modal-historico').modal('show')
+                  },
+                  error: function(){
+                    $.toast({
+                      displayTime: 'auto',
+                      showProgress: 'top',
+                      class: 'error',
+                      classProgress: 'error',
+                      message: 'No fue posible cargar el historial del empleado'
+                    })
+                  }
+                })
                 break;      
               case 'descargos':
                 $('#modal-descargos').modal('show')

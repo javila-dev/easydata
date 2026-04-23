@@ -308,55 +308,56 @@ class base_personal(models.Model):
             nc += ' ' + self.segundo_apellido
         
         return nc.upper()
+
+    def _contracts_for_render(self):
+        prefetched_contracts = getattr(self, 'prefetched_contracts', None)
+        if prefetched_contracts is not None:
+            return prefetched_contracts
+
+        return list(
+            contratos_personal.objects.filter(trabajador=self.pk).select_related(
+                'empleador',
+                'temporal',
+                'cargo',
+                'area',
+                'area__estructura',
+                'canal',
+                'cceco',
+                'sede',
+                'ciudad_laboral',
+                'ciudad_laboral__departamento',
+                'jefe_inmediato',
+                'motivo_retiro',
+            ).prefetch_related(
+                'auxilios_contrato_set__tipo',
+            ).order_by('fecha_inicio', 'id')
+        )
     
     def contrato_activo(self,type='json'):
-        _contrato = contratos_personal.objects.filter(trabajador=self.pk).select_related(
-            'empleador',
-            'temporal',
-            'cargo',
-            'area',
-            'area__estructura',
-            'canal',
-            'cceco',
-            'sede',
-            'ciudad_laboral',
-            'ciudad_laboral__departamento',
-            'jefe_inmediato',
-            'motivo_retiro',
-        ).prefetch_related(
-            'auxilios_contrato_set__tipo',
-        )
+        contracts = self._contracts_for_render()
         if self.activo:
-            _contrato = _contrato.filter(activo=True)
+            contracts = [contract for contract in contracts if contract.activo]
         
         data = []
-        if _contrato.exists():
+        if contracts:
             if type=='json':
-                data = JsonRender(_contrato, query_functions=['auxilios_contrato',]).render()[-1]
+                data = JsonRender(contracts, query_functions=['auxilios_contrato',]).render()[-1]
             else:
-                data = _contrato.last()
+                data = contracts[-1]
         
         return data
     
     def historico_contratos(self):
-        _contrato = contratos_personal.objects.filter(trabajador=self.pk).select_related(
-            'empleador',
-            'temporal',
-            'cargo',
-            'area',
-            'area__estructura',
-            'canal',
-            'cceco',
-            'sede',
-            'ciudad_laboral',
-            'ciudad_laboral__departamento',
-            'jefe_inmediato',
-            'motivo_retiro',
-        ).prefetch_related(
-            'auxilios_contrato_set__tipo',
-        ).order_by('-activo_hasta')
-        if _contrato.exists():
-            return JsonRender(_contrato, query_functions=['auxilios_contrato',]).render()
+        contracts = sorted(
+            self._contracts_for_render(),
+            key=lambda contract: (
+                contract.activo_hasta is None,
+                contract.activo_hasta or datetime.date.min,
+            ),
+            reverse=True,
+        )
+        if contracts:
+            return JsonRender(contracts, query_functions=['auxilios_contrato',]).render()
         
         return []
     

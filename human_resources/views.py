@@ -10,7 +10,7 @@ import dateutil
 from django.conf import settings
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.db.models.query_utils import Q
-from django.db.models import Sum, Count, F, Case, When, IntegerField, Func
+from django.db.models import Sum, Count, F, Case, When, IntegerField, Func, Prefetch
 from django.shortcuts import render
 from django.db import transaction
 from django.contrib.auth.decorators import login_required
@@ -73,16 +73,79 @@ def human_resources(request):
                     'ccf',
                     'ciudad',
                     'departamento',
+                ).prefetch_related(
+                    Prefetch(
+                        'trabajador',
+                        queryset=contratos_personal.objects.select_related(
+                            'empleador',
+                            'temporal',
+                            'cargo',
+                            'area',
+                            'area__estructura',
+                            'canal',
+                            'cceco',
+                            'sede',
+                            'ciudad_laboral',
+                            'ciudad_laboral__departamento',
+                            'jefe_inmediato',
+                            'motivo_retiro',
+                        ).prefetch_related(
+                            'auxilios_contrato_set__tipo',
+                        ).order_by('fecha_inicio', 'id'),
+                        to_attr='prefetched_contracts',
+                    )
                 )
                     
                 render_json = JsonRender(personal,
-                            query_functions = ('get_full_name','contrato_activo',
-                                               'historico_contratos','historico_acciones'))                       
+                            query_functions = ('get_full_name','contrato_activo',))
                 data = {
                     'data': render_json.render()
                 }
                 
                 return JsonResponse(data)
+
+            elif todo == 'getworkerhistory':
+                numero_id = request.GET.get('numero_id')
+                worker = base_personal.objects.filter(
+                    numero_identificacion=numero_id
+                ).select_related(
+                    'eps',
+                    'pension',
+                    'cesantias',
+                    'arl',
+                    'ccf',
+                    'ciudad',
+                    'departamento',
+                ).prefetch_related(
+                    Prefetch(
+                        'trabajador',
+                        queryset=contratos_personal.objects.select_related(
+                            'empleador',
+                            'temporal',
+                            'cargo',
+                            'area',
+                            'area__estructura',
+                            'canal',
+                            'cceco',
+                            'sede',
+                            'ciudad_laboral',
+                            'ciudad_laboral__departamento',
+                            'jefe_inmediato',
+                            'motivo_retiro',
+                        ).prefetch_related(
+                            'auxilios_contrato_set__tipo',
+                        ).order_by('fecha_inicio', 'id'),
+                        to_attr='prefetched_contracts',
+                    )
+                ).first()
+
+                if worker is None:
+                    return JsonResponse({'msj': 'Empleado no encontrado'}, status=404)
+
+                return JsonResponse({
+                    'historico_contratos': worker.historico_contratos(),
+                    'historico_acciones': worker.historico_acciones(),
+                })
             
             elif todo == 'get_subareas_by_cargo':
                 cargo = request.GET.get('cargo')
