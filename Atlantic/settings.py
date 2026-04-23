@@ -60,6 +60,11 @@ ALLOWED_HOSTS = [host.strip() for host in env(
     'atlantic.2asoft.tech,localhost'
 ).split(',') if host.strip()]
 
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in env(
+    'CSRF_TRUSTED_ORIGINS',
+    'https://atlantic.2asoft.tech'
+).split(',') if origin.strip()]
+
 
 # Application definition
 
@@ -186,6 +191,10 @@ EMAIL_PORT = int(env('EMAIL_PORT', '587'))
 EMAIL_HOST_USER = env('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+CSRF_COOKIE_SECURE = PRODUCTION
+SESSION_COOKIE_SECURE = PRODUCTION
 
 
 # Static files (CSS, JavaScript, Images)
