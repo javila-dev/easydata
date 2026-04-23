@@ -15,7 +15,9 @@ WORKDIR /code
 COPY requirements.txt /code/
 RUN pip install -r requirements.txt
 COPY . /code/
+RUN chmod +x /code/docker-entrypoint.sh
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py collectstatic --noinput && gunicorn Atlantic.wsgi:application --bind 0.0.0.0:8000"]
+ENTRYPOINT ["/code/docker-entrypoint.sh"]
+CMD ["gunicorn", "Atlantic.wsgi:application", "--bind", "0.0.0.0:8000"]
