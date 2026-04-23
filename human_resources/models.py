@@ -310,7 +310,22 @@ class base_personal(models.Model):
         return nc.upper()
     
     def contrato_activo(self,type='json'):
-        _contrato = contratos_personal.objects.filter(trabajador=self.pk)
+        _contrato = contratos_personal.objects.filter(trabajador=self.pk).select_related(
+            'empleador',
+            'temporal',
+            'cargo',
+            'area',
+            'area__estructura',
+            'canal',
+            'cceco',
+            'sede',
+            'ciudad_laboral',
+            'ciudad_laboral__departamento',
+            'jefe_inmediato',
+            'motivo_retiro',
+        ).prefetch_related(
+            'auxilios_contrato_set__tipo',
+        )
         if self.activo:
             _contrato = _contrato.filter(activo=True)
         
@@ -324,7 +339,22 @@ class base_personal(models.Model):
         return data
     
     def historico_contratos(self):
-        _contrato = contratos_personal.objects.filter(trabajador=self.pk).order_by('-activo_hasta')
+        _contrato = contratos_personal.objects.filter(trabajador=self.pk).select_related(
+            'empleador',
+            'temporal',
+            'cargo',
+            'area',
+            'area__estructura',
+            'canal',
+            'cceco',
+            'sede',
+            'ciudad_laboral',
+            'ciudad_laboral__departamento',
+            'jefe_inmediato',
+            'motivo_retiro',
+        ).prefetch_related(
+            'auxilios_contrato_set__tipo',
+        ).order_by('-activo_hasta')
         if _contrato.exists():
             return JsonRender(_contrato, query_functions=['auxilios_contrato',]).render()
         
@@ -393,7 +423,7 @@ class contratos_personal(models.Model):
     activo = models.BooleanField(default=True)
     
     def auxilios_contrato(self):
-        _auxilios = auxilios_contrato.objects.filter(contrato=self.pk)
+        _auxilios = auxilios_contrato.objects.filter(contrato=self.pk).select_related('tipo')
         if _auxilios.exists():            
             return JsonRender(_auxilios).render()
         

@@ -2,6 +2,7 @@ from functools import wraps
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
 from django.core.exceptions import PermissionDenied
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import HttpResponse
 from django.template.loader import get_template
 from django.db.models.fields.related import ForeignKey, ManyToManyField
@@ -273,22 +274,32 @@ class JsonRender():
     
     def render(self):
         object_dict = list()
-        if self.queryset.count() > 0:
-            fields = [f for f in self.queryset[0]._meta._get_fields(reverse=self.reverse)]
-        else: 
+        if hasattr(self.queryset, '__iter__'):
+            first_item = next(iter(self.queryset), None)
+        else:
+            first_item = None
+        if first_item is not None:
+            fields = [f for f in first_item._meta._get_fields(reverse=self.reverse)]
+        else:
             fields = []
         for obj in self.queryset:
             item = {}
             for field in fields:
                 if field.name in self.fieldlist or self.fieldlist == []:
-                    field_value = eval("obj."+field.name)     
+                    try:
+                        field_value = eval("obj."+field.name)
+                    except (ObjectDoesNotExist, AttributeError, KeyError):
+                        field_value = None
                     if type(field) == ForeignKey:
                         if field.related_model == User:
-                            field_value = {
-                                'username': eval("obj."+field.name+'.username'),
-                                'first_name': eval("obj."+field.name+'.first_name'),
-                                'last_name': eval("obj."+field.name+'.last_name'),
-                            }
+                            if field_value is None:
+                                field_value = None
+                            else:
+                                field_value = {
+                                    'username': eval("obj."+field.name+'.username'),
+                                    'first_name': eval("obj."+field.name+'.first_name'),
+                                    'last_name': eval("obj."+field.name+'.last_name'),
+                                }
                         else:
                             if self.related_fields:
                                 field_value = self.ForeingKeyRender(field,field_value)
@@ -318,7 +329,10 @@ class JsonRender():
             if queryset_item == None:
                 field_value = None
             else:
-                field_value = eval(f'queryset_item.{field.name}')
+                try:
+                    field_value = eval(f'queryset_item.{field.name}')
+                except (ObjectDoesNotExist, AttributeError, KeyError):
+                    field_value = None
                 if type(field) == ForeignKey:
                     field_value = self.ForeingKeyRender(field,field_value)
                 elif type(field) == ManyToManyField:

@@ -62,6 +62,18 @@ def human_resources(request):
                     personal = base_personal.objects.filter(activo=True)
                 elif retired:
                     personal = base_personal.objects.filter(activo=False)
+                else:
+                    personal = base_personal.objects.none()
+
+                personal = personal.select_related(
+                    'eps',
+                    'pension',
+                    'cesantias',
+                    'arl',
+                    'ccf',
+                    'ciudad',
+                    'departamento',
+                )
                     
                 render_json = JsonRender(personal,
                             query_functions = ('get_full_name','contrato_activo',
