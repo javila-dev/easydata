@@ -54,13 +54,13 @@
       <div class="card-hdr">HC por Sede</div>
       <div id="ch-sede" class="chart-box chart-box-tall"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
     </div>
-    <div class="card" id="c-contrato">
-      <div class="card-hdr">HC por Tipo de Contrato</div>
-      <div id="ch-contrato" class="chart-box"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
-    </div>
     <div class="card" id="c-salario">
       <div class="card-hdr">HC y Salario promedio por Grupo Salarial</div>
       <div id="ch-salario" class="chart-box"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
+    </div>
+    <div class="card" id="c-contrato">
+      <div class="card-hdr">HC por Tipo de Contrato</div>
+      <div id="ch-contrato" class="chart-box"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
     </div>
     <div class="card" id="c-vac-gerencia">
       <div class="card-hdr">Vacantes por Gerencia</div>
@@ -253,12 +253,12 @@
           data: salCounts.map(function (v, i) { return { y: v, color: PALETTE[i % PALETTE.length] }; }),
           dataLabels: { enabled: true } },
         { name: 'Salario promedio', type: 'line', yAxis: 1,
-          data: salAvgs, color: '#1e293b',
+          data: salAvgs, color: '#f97316',
           marker: { enabled: true, radius: 4 },
           dataLabels: {
             enabled: true,
             formatter: function () { return fmtMoney(this.y); },
-            style: { fontSize: '10px', color: '#1e293b' }
+            style: { fontSize: '10px', color: '#f97316' }
           } }
       ],
       tooltip: {

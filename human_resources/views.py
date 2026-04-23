@@ -2292,7 +2292,7 @@ def dependentlist(request):
                     areas = area.objects.filter(estructura=estructura
                                             ).order_by('descripcion')                                            
                     data = {
-                        'data':[{'name':i.descripcion,'value':i.pk} for i in areas]
+                        'data':[{'name':i.descripcion,'value':i.pk,'cantidad_actual':i.cantidad_actual()} for i in areas]
                     }
                 
             elif todo == 'cargosbyarea':

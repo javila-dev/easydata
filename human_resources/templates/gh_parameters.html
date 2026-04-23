@@ -34,6 +34,9 @@
                 <i class="dropdown icon"></i>
                 <i class="building outline icon" style="color:#999;margin-right:0.15rem;"></i>
                 {{ est.descripcion }}
+                <span style="font-weight:400;color:#aaa;font-size:0.82em;margin-left:0.3rem;">
+                    ({{ est.cantidad_actual }})
+                </span>
             </div>
             <div class="content" data-estructura="{{ est.pk }}"
                  style="margin:0;padding:0;background:#fff;">
@@ -287,6 +290,7 @@ $(document).ready(function () {
                                    'transition:background 0.12s,color 0.12s;">' +
                             '<i class="map marker alternate icon" style="color:#4bb3fd;font-size:0.82em;"></i> ' +
                             a.name +
+                            '<span style="color:#bbb;font-size:0.82em;margin-left:0.25rem;">(' + a.cantidad_actual + ')</span>' +
                         '</div>'
                     );
                 });

@@ -115,13 +115,18 @@ class estructura(models.Model):
             workers = base_personal.objects.filter(cargo__area = self.pk,
                                                 fecha_ingreso__lte=datecontrol,
                                                 fecha_retiro__gte=datecontrol)
-    
+
         total_salary = workers.aggregate(total=Sum('salario_base')).get('total')
-        
+
         total_salary = 0 if total_salary is None else total_salary
-        
+
         return total_salary
-        
+
+    def cantidad_actual(self):
+        return contratos_personal.objects.filter(
+            cargo__area__estructura=self.pk, activo=True
+        ).count()
+
 class area(models.Model):
     descripcion = models.CharField(max_length= 255)
     estructura = models.ForeignKey(estructura, on_delete=models.PROTECT) 
