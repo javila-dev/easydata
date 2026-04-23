@@ -13,6 +13,7 @@ from django.db.models.query_utils import Q
 from django.db.models import Sum, Count, F, Case, When, IntegerField, Func, Prefetch
 from django.shortcuts import render
 from django.db import transaction
+from django.db.models.deletion import ProtectedError
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db import close_old_connections
@@ -954,10 +955,26 @@ def parameters(request):
                 action = f'Creó una nueva area {descripcion.upper()} en la estructura {estructura_.descripcion.upper()} '
                 
                 add_history(request.user, action)
-                
+
                 return JsonResponse(data)
-                
-            
+
+            elif todo == 'delete_area':
+                try:
+                    area_ = area.objects.get(pk=request.POST.get('area'))
+                    nombre = area_.descripcion
+                    area_.delete()
+                    add_history(request.user, f'Eliminó el área {nombre.upper()}')
+                    data = {
+                        'class': 'success',
+                        'message': f'Área {nombre} eliminada con éxito'
+                    }
+                except area.DoesNotExist:
+                    data = {'class': 'error', 'message': 'El área no existe'}
+                except ProtectedError:
+                    data = {'class': 'error', 'message': 'No se puede eliminar: el área tiene cargos asignados'}
+                return JsonResponse(data)
+
+
     return render(request, 'gh_parameters.html', context)
 
 @login_required

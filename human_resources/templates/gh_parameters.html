@@ -101,14 +101,16 @@
                 <table class="ui compact selectable table" id="table-areas-new" style="width:100%;">
                     <thead>
                         <tr>
-                            <th style="width:78%;" class="sticky">Área</th>
+                            <th class="sticky">Área</th>
                             <th class="text-center sticky">Personal activo</th>
+                            <th class="text-center sticky" style="width:60px;"></th>
                         </tr>
                     </thead>
                     <tfoot>
                         <tr>
                             <th class="text-right" style="color:#999;">Total</th>
                             <th class="text-center"></th>
+                            <th></th>
                         </tr>
                     </tfoot>
                 </table>
@@ -199,6 +201,22 @@
     </div>
     <div class="actions">
         <button class="ui approve green button">Crear</button>
+    </div>
+</div>
+
+<!-- ── Modal: eliminar área ────────────────────────────────────── -->
+<div class="ui mini modal" id="modal-eliminar-area">
+    <i class="close icon"></i>
+    <div class="header"><i class="trash alternate icon"></i> Eliminar área</div>
+    <div class="content">
+        <p>¿Seguro que deseas eliminar el área <strong id="nombre-area-eliminar"></strong>?</p>
+        <p style="color:#999;font-size:0.88rem;margin-top:0.4rem;">
+            Si el área tiene cargos asociados, el sistema no permitirá la eliminación.
+        </p>
+    </div>
+    <div class="actions">
+        <button class="ui cancel button">Cancelar</button>
+        <button class="ui approve red button"><i class="trash icon"></i> Eliminar</button>
     </div>
 </div>
 
@@ -405,15 +423,29 @@ $(document).ready(function () {
         $('#active-panel').show();
     }
 
+    /* ── Estado pendiente de eliminación ────────────────────── */
+    var pendingDeleteAreaId     = null;
+    var pendingDeleteAreaNombre = null;
+
     /* ── Construcción de DataTables ──────────────────────────── */
     function buildTablaAreas(url) {
-        return new DataTable('#table-areas-new', {
+        var dt = new DataTable('#table-areas-new', {
             paging: false, searching: false, processing: true, info: false,
             order: [[0, 'asc']],
             ajax: { url: url, dataSrc: 'data' },
             columns: [
                 { data: 'descripcion' },
-                { data: 'cantidad_actual', className: 'text-center' }
+                { data: 'cantidad_actual', className: 'text-center' },
+                { data: null, orderable: false, className: 'text-center',
+                  render: function (data, type, row) {
+                      return '<button class="ui mini red icon button btn-delete-area" ' +
+                                 'data-id="' + row.id + '" ' +
+                                 'data-nombre="' + row.descripcion + '" ' +
+                                 'title="Eliminar área">' +
+                                 '<i class="trash alternate outline icon"></i>' +
+                             '</button>';
+                  }
+                }
             ],
             footerCallback: function () {
                 var api   = this.api();
@@ -423,6 +455,16 @@ $(document).ready(function () {
                 $(api.column(1).footer()).html(total);
             }
         });
+
+        $('#table-areas-new tbody').on('click', '.btn-delete-area', function (e) {
+            e.stopPropagation();
+            pendingDeleteAreaId     = $(this).data('id');
+            pendingDeleteAreaNombre = $(this).data('nombre');
+            $('#nombre-area-eliminar').text(pendingDeleteAreaNombre);
+            $('#modal-eliminar-area').modal('show');
+        });
+
+        return dt;
     }
 
     function buildTablaCargos(url) {
@@ -588,6 +630,40 @@ $(document).ready(function () {
                               class: 'error', classProgress: 'error',
                               message: 'Error al crear el área' });
                     $form.removeClass('loading');
+                    button.removeClass('disabled loading');
+                }
+            });
+            return false;
+        }
+    });
+
+    /* ── Modal: eliminar área ────────────────────────────────── */
+    $('#modal-eliminar-area').modal({
+        keyboardShortcuts: false,
+        closeIcon: true,
+        onApprove: function () {
+            var button = $('#modal-eliminar-area').find('button.approve').addClass('disabled loading');
+            var form = new FormData();
+            form.append('todo', 'delete_area');
+            form.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+            form.append('area', pendingDeleteAreaId);
+            $.ajax({
+                type: 'POST', url: BASE_URL, data: form,
+                contentType: false, processData: false,
+                success: function (r) {
+                    $.toast({ displayTime: 'auto', showProgress: 'top',
+                              class: r.class, classProgress: r.class, message: r.message });
+                    if (r.class === 'success') {
+                        if (tablaAreas) tablaAreas.ajax.reload();
+                        reloadAreasInTree(currentEstructura.id);
+                        $('#modal-eliminar-area').modal('hide');
+                    }
+                    button.removeClass('disabled loading');
+                },
+                error: function () {
+                    $.toast({ displayTime: 'auto', showProgress: 'top',
+                              class: 'error', classProgress: 'error',
+                              message: 'Error al eliminar el área' });
                     button.removeClass('disabled loading');
                 }
             });

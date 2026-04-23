@@ -253,12 +253,12 @@
           data: salCounts.map(function (v, i) { return { y: v, color: PALETTE[i % PALETTE.length] }; }),
           dataLabels: { enabled: true } },
         { name: 'Salario promedio', type: 'line', yAxis: 1,
-          data: salAvgs, color: '#f97316',
+          data: salAvgs, color: '#60a5fa',
           marker: { enabled: true, radius: 4 },
           dataLabels: {
             enabled: true,
             formatter: function () { return fmtMoney(this.y); },
-            style: { fontSize: '10px', color: '#f97316' }
+            style: { fontSize: '10px', color: '#2563eb' }
           } }
       ],
       tooltip: {
@@ -391,8 +391,8 @@
 #c-gerencia     { grid-column: 1;        grid-row: 1; }
 #c-genero       { grid-column: 2;        grid-row: 1; }
 #c-sede         { grid-column: 3;        grid-row: 1 / span 2; }
-#c-contrato     { grid-column: 1;        grid-row: 2; }
-#c-salario      { grid-column: 2;        grid-row: 2; }
+#c-salario      { grid-column: 1;        grid-row: 2; }
+#c-contrato     { grid-column: 2;        grid-row: 2; }
 #c-vac-gerencia { grid-column: 1 / span 3; grid-row: 3; }
 
 .card {
@@ -424,8 +424,8 @@
   #c-gerencia     { grid-column: 1 / span 2; grid-row: auto; }
   #c-genero       { grid-column: 1; grid-row: auto; }
   #c-sede         { grid-column: 2; grid-row: auto; }
-  #c-contrato     { grid-column: 1; grid-row: auto; }
-  #c-salario      { grid-column: 2; grid-row: auto; }
+  #c-salario      { grid-column: 1; grid-row: auto; }
+  #c-contrato     { grid-column: 2; grid-row: auto; }
   #c-vac-gerencia { grid-column: 1 / span 2; grid-row: auto; }
   .chart-box-tall { height: 260px; }
   .chart-box-vac  { height: 200px; }
