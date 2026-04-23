@@ -8,207 +8,145 @@
     <a class="item active" href="/humanresources/parameters">Parametros</a>
     <a class="item" href="/humanresources/historial">Historial</a>
 {%endblock%}
+
 {%block content%}
-<div class="ui grid" style="padding:0;max-height: 93vh;overflow-y: auto;">
-    <div class="three wide column" style="max-height: 100%;">
-        <div class="ui raised cards">
-            <a class="ui primary centered item card" href="#" style="text-align: center;width:200px;" data-tab="estructura-ideal">
-                <div class="image">
-                    <lord-icon
-                        src="https://cdn.lordicon.com/tlxagvyb.json"
-                        trigger="hover"
-                        colors="primary:#4bb3fd,secondary:#ffc738,tertiary:#e8b730,quaternary:#848484"
-                        style="width:100px;height:100px">
-                    </lord-icon>
-                </div>
-                <div class="content">
-                   <strong>Estructura ideal</strong>
-                </div>
-              </a>
-              <a class="ui centered item card" href="#" style="text-align: center;width:200px;" data-tab="cargos">
-                <div class="image">
-                    <lord-icon
-                        src="https://cdn.lordicon.com/ibanawal.json"
-                        trigger="hover"
-                        colors="primary:#b26836,secondary:#ffc738,tertiary:#3a3347,quaternary:#4bb3fd,quinary:#242424"
-                        style="width:100px;height:100px">
-                    </lord-icon>
-                </div>
-                <div class="content">
-                   <strong>Cargos</strong>
-                </div>
-              </a>
-              <a class="ui centered item card" href="#" style="text-align: center;width:200px;" data-tab="areas">
-                <div class="image">
-                    <lord-icon
-                        src="https://cdn.lordicon.com/prgqueup.json"
-                        trigger="hover"
-                        colors="primary:#848484,secondary:#4bb3fd,tertiary:#ffc738"
-                        style="width:100px;height:100px">
-                    </lord-icon>
-                </div>
-                <div class="content">
-                   <strong>Areas</strong>
-                </div>
-              </a>
+<div style="display:flex;height:93vh;overflow:hidden;padding:0;">
+
+    <!-- ── LEFT: árbol jerárquico ─────────────────────────────────── -->
+    <div id="tree-panel"
+         style="width:270px;min-width:220px;height:100%;overflow-y:auto;
+                border-right:2px solid #e4e4e4;background:#f8f9fb;flex-shrink:0;">
+
+        <div style="padding:0.9rem 1rem 0.7rem;border-bottom:1px solid #e4e4e4;">
+            <div class="ui header" style="margin:0;font-size:0.95rem;color:#333;">
+                <i class="sitemap icon" style="color:#4bb3fd;"></i>
+                <div class="content">Estructura organizacional</div>
+            </div>
+        </div>
+
+        <div class="ui accordion fluid" id="estructura-tree" style="box-shadow:none;border-radius:0;">
+            {% for est in estructuras %}
+            <div class="title estructura-node"
+                 data-id="{{ est.pk }}" data-nombre="{{ est.descripcion }}"
+                 style="padding:0.75rem 1rem;border-bottom:1px solid #ececec;
+                        font-size:0.87rem;font-weight:600;color:#444;
+                        transition:background 0.15s,color 0.15s;">
+                <i class="dropdown icon"></i>
+                <i class="building outline icon" style="color:#999;margin-right:0.15rem;"></i>
+                {{ est.descripcion }}
+            </div>
+            <div class="content" data-estructura="{{ est.pk }}"
+                 style="margin:0;padding:0;background:#fff;">
+                <div id="areas-list-{{ est.pk }}"
+                     style="padding:0.3rem 0.4rem 0.4rem 1.6rem;"></div>
+            </div>
+            {% endfor %}
         </div>
     </div>
-    <div class="thirteen wide column" style="max-height: 100%;">
-        <div class="ui raised tab segment" data-tab="estructura-ideal">
-            <div class="ui form">
-                <div class="equialy divided fields">
-                    <div class="three wide field"></div>
-                    <div class="five wide field">
-                        <div class="ui labeled fluid input">
-                            <div class="ui label">Gerencia</div>
-                            <select class="ui fluid selection dropdown" id="id_estructuras_EI">
-                                <option value="">Selecciona...</option>
-                                {%for estructura in estructuras%}
-                                <option value="{{estructura.pk}}">{{estructura.descripcion}}</option>
-                                {%endfor%}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="five wide field">
-                        <div class="ui labeled fluid input">
-                            <div class="ui label">Area</div>
-                            <select class="ui fluid selection dropdown" id="id_areas_EI">
-                                <option value="">Selecciona...</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="three wide field"></div>
-                </div>
-                <div class="ui center aligned container" style="max-height: 75vh;overflow-y: auto;">
-                    <table class="ui compact selectable centered table" style="width: 80%;margin:auto auto"
-                        id="table-cargo-estruct">
-                        <thead>
-                            <tr>
-                                <th width="50%" class="text-center sticky">Cargo</th>
-                                <th class="text-center sticky">Criticidad</th>
-                                <th class="text-center sticky">Cantidad aprobada</th>
-                                <th class="text-center sticky">Cantidad actual</th>
-                                <th class="text-center sticky">Diferencia</th>
-                            </tr>
-                        </thead>
-                        <tfoot>
-                            <tr>
-                                <th width="50%" colspan="2" class="text-center">Total</th>
-                                <th class="text-center"></th>
-                                <th class="text-center"></th>
-                                <th class="text-center"></th>
-                            </tr>
-                        </tfoot>
-                    </table>
+
+    <!-- ── RIGHT: panel de contenido ─────────────────────────────── -->
+    <div style="flex:1;height:100%;overflow-y:auto;padding:1.4rem 1.8rem;">
+
+        <!-- Estado vacío -->
+        <div id="empty-state"
+             style="display:flex;flex-direction:column;align-items:center;
+                    justify-content:center;height:82%;">
+            <lord-icon
+                src="https://cdn.lordicon.com/prgqueup.json"
+                trigger="loop"
+                delay="3000"
+                colors="primary:#cccccc,secondary:#dddddd,tertiary:#eeeeee"
+                style="width:110px;height:110px;opacity:0.55;">
+            </lord-icon>
+            <p style="color:#c4c4c4;font-size:1.05rem;margin-top:1rem;font-weight:300;">
+                Selecciona una estructura o área del árbol
+            </p>
+        </div>
+
+        <!-- Panel activo (oculto por defecto) -->
+        <div id="active-panel" style="display:none;">
+
+            <!-- Breadcrumb -->
+            <div class="ui breadcrumb" style="margin-bottom:0.85rem;font-size:0.83rem;">
+                <span class="section" style="color:#bbb;">Parámetros</span>
+                <i class="right chevron icon divider" style="color:#ccc;"></i>
+                <span id="bc-estructura" class="section" style="color:#999;"></span>
+                <span id="bc-area-group" style="display:none;">
+                    <i class="right chevron icon divider" style="color:#ccc;"></i>
+                    <span id="bc-area" class="active section"></span>
+                </span>
+            </div>
+
+            <!-- Encabezado del panel -->
+            <div style="display:flex;align-items:center;justify-content:space-between;
+                        padding-bottom:0.85rem;border-bottom:2px solid #f0f0f0;margin-bottom:1.1rem;">
+                <h3 id="panel-title" class="ui header" style="margin:0;font-size:1.2rem;"></h3>
+                <div>
+                    <button type="button" class="ui labeled icon green button"
+                            id="btn-add-area-panel" style="display:none;">
+                        <i class="plus icon"></i> Nueva área
+                    </button>
+                    <button type="button" class="ui labeled icon teal button"
+                            id="btn-add-cargo-panel" style="display:none;">
+                        <i class="plus icon"></i> Nuevo cargo
+                    </button>
                 </div>
             </div>
-        </div>
-        <div class="ui raised tab segment" data-tab="cargos">
-            <div class="ui form">
-                <div class="equialy divided fields">
-                    <div class="two wide field"></div>
-                    <div class="five wide field">
-                        <div class="ui labeled fluid input">
-                            <div class="ui label">Gerencia</div>
-                            <select class="ui fluid selection dropdown" id="id_estructuras_cargos">
-                                <option value="">Selecciona...</option>
-                                {%for estructura in estructuras%}
-                                <option value="{{estructura.pk}}">{{estructura.descripcion}}</option>
-                                {%endfor%}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="five wide field">
-                        <div class="ui labeled fluid input">
-                            <div class="ui label">Area</div>
-                            <select class="ui fluid selection dropdown" id="id_areas_cargos">
-                                <option value="">Selecciona...</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="two wide field">
-                        <button type="button" class="ui labeled icon green button"
-                            id="btn-add-cargos">
-                            <i class="plus icon"></i>
-                            Agregar
-                        </button>
-                    </div>
-                    <div class="two wide field"></div>
-                </div>
-                <div class="ui center aligned container" style="max-height: 75vh;overflow-y: auto;">
-                    <table class="ui compact selectable centered table" style="width: 80%;margin:auto auto" 
-                        id="table-cargos">
-                        <thead>
-                            <tr>
-                                <th width="70%" class="text-center sticky">Cargo</th>
-                                <th class="text-center sticky">Criticidad</th>
-                                <th class="text-center sticky">Cantidad actual</th>
-                            </tr>
-                        </thead>
-                        <tfoot>
-                            <tr>
-                                <th width="30%" colspan="2" class="text-center">Total</th>
-                                <th class="text-center"></th>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
+
+            <!-- Tabla de áreas -->
+            <div id="areas-section" style="display:none;">
+                <table class="ui compact selectable table" id="table-areas-new" style="width:100%;">
+                    <thead>
+                        <tr>
+                            <th style="width:78%;" class="sticky">Área</th>
+                            <th class="text-center sticky">Personal activo</th>
+                        </tr>
+                    </thead>
+                    <tfoot>
+                        <tr>
+                            <th class="text-right" style="color:#999;">Total</th>
+                            <th class="text-center"></th>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
-        </div>
-        <div class="ui raised tab segment" data-tab="areas">
-            <div class="ui form">
-                <div class="equialy divided fields">
-                    <div class="four wide field"></div>
-                    <div class="six wide field">
-                        <div class="ui labeled fluid input">
-                            <div class="ui label">Gerencia</div>
-                            <select class="ui fluid selection dropdown" id="id_estructuras_areas">
-                                <option value="">Selecciona...</option>
-                                {%for estructura in estructuras%}
-                                <option value="{{estructura.pk}}">{{estructura.descripcion}}</option>
-                                {%endfor%}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="two wide field">
-                        <button type="button" class="ui labeled icon green button"
-                            id="btn-add-areas">
-                            <i class="plus icon"></i>
-                            Agregar
-                        </button>
-                    </div>
-                    <div class="four wide field"></div>
-                </div>
-                <div class="ui center aligned container" style="max-height: 75vh;overflow-y: auto;">
-                    <table class="ui compact selectable centered table" style="width: 80%;margin:auto auto" 
-                        id="table-areas">
-                        <thead>
-                            <tr>
-                                <th width="70%" class="text-center sticky">Areas</th>
-                                <th class="text-center sticky">Cantidad actual</th>
-                            </tr>
-                        </thead>
-                        <tfoot>
-                            <tr>
-                                <th width="30%" class="text-center">Total</th>
-                                <th class="text-center"></th>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
+
+            <!-- Tabla de cargos -->
+            <div id="cargos-section" style="display:none;">
+                <table class="ui compact selectable table" id="table-cargos-new" style="width:100%;">
+                    <thead>
+                        <tr>
+                            <th style="width:38%;" class="sticky">Cargo</th>
+                            <th class="text-center sticky">Criticidad</th>
+                            <th class="text-center sticky">Aprobados</th>
+                            <th class="text-center sticky">Activos</th>
+                            <th class="text-center sticky">Diferencia</th>
+                        </tr>
+                    </thead>
+                    <tfoot>
+                        <tr>
+                            <th colspan="2" class="text-right" style="color:#999;">Total</th>
+                            <th class="text-center"></th>
+                            <th class="text-center"></th>
+                            <th class="text-center"></th>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
-        </div>
-    </div>
-</div>  
+
+        </div><!-- /active-panel -->
+    </div><!-- /right panel -->
+</div><!-- /flex container -->
+
+
+<!-- ── Modal: editar cargo (estructura ideal) ──────────────────── -->
 <div class="ui mini modal" id="modal-cambio-estructura">
     <i class="close icon"></i>
-    <div class="header">
-        Actualizar parametros del cargo
-    </div>
+    <div class="header">Actualizar parámetros del cargo</div>
     <div class="content">
         <div class="ui form">
             <div class="field">
-                <label>Cantidad</label>
+                <label>Criticidad</label>
                 <select required name="criticidad_cargo" id="id_criticidad_cargo" class="ui dropdown">
                     <option value="BAJA">BAJA</option>
                     <option value="MEDIA">MEDIA</option>
@@ -216,39 +154,37 @@
                 </select>
             </div>
             <div class="field">
-                <label>Cantidad</label>
+                <label>Cantidad aprobada</label>
                 <input type="number" min="0" id="id-nueva-cantidad-estructura"
-                    class="text-center" name="nueva-cantidad-estructura">
+                       class="text-center" name="nueva-cantidad-estructura">
             </div>
         </div>
     </div>
     <div class="actions">
-        <button class="ui approve green button">
-            Actualizar
-        </button>
+        <button class="ui approve green button">Actualizar</button>
     </div>
 </div>
+
+<!-- ── Modal: nuevo cargo ──────────────────────────────────────── -->
 <div class="ui tiny modal" id="modal-nuevo-cargo">
     <i class="close icon"></i>
-    <div class="header">
-        Agregar nuevo cargo
-    </div>
+    <div class="header">Agregar nuevo cargo</div>
     <div class="content">
-        <form class="ui form" type="POST" id="form-descripcion">{%csrf_token%}
+        <form class="ui form" id="form-descripcion">{%csrf_token%}
             <div class="field">
-                <label>Descripcion</label>
+                <label>Descripción</label>
                 <input type="text" id="id-descripcion-cargo" required name="descripcion-cargo">
             </div>
             <div class="two fields">
                 <div class="field">
                     <label>Cantidad aprobada</label>
                     <input type="number" required min="0" id="id-cantidad-estructura-nuevo-cargo"
-                        class="text-center" name="cantidad-estructura-nuevo-cargo">
+                           class="text-center" name="cantidad-estructura-nuevo-cargo">
                 </div>
                 <div class="field">
                     <label>Criticidad</label>
-                    <select class="ui fluid selection dropdown" required id="id_criticidad_cargo"
-                        name="criticidad_cargo">
+                    <select class="ui fluid selection dropdown" required
+                            id="id_criticidad_nuevo_cargo" name="criticidad_cargo">
                         <option value="">Selecciona...</option>
                         <option value="BAJA">Baja</option>
                         <option value="MEDIA">Media</option>
@@ -256,476 +192,420 @@
                     </select>
                 </div>
             </div>
-            
         </form>
     </div>
     <div class="actions">
-        <button class="ui approve green button">
-            Crear
-        </button>
+        <button class="ui approve green button">Crear</button>
     </div>
 </div>
+
+<!-- ── Modal: nueva área ───────────────────────────────────────── -->
 <div class="ui tiny modal" id="modal-nuevo-area">
     <i class="close icon"></i>
-    <div class="header">
-        Agregar area nueva
-    </div>
+    <div class="header">Agregar área nueva</div>
     <div class="content">
-        <form class="ui form" type="POST" id="form-area-nueva">{%csrf_token%}
+        <form class="ui form" id="form-area-nueva">{%csrf_token%}
             <div class="field">
-                <label>Descripcion</label>
+                <label>Descripción</label>
                 <input type="text" id="id-descripcion-area" required name="descripcion-area">
             </div>
         </form>
     </div>
     <div class="actions">
-        <button class="ui approve green button">
-            Crear
-        </button>
+        <button class="ui approve green button">Crear</button>
     </div>
 </div>
 
 {%endblock%}
+
 {%block script%}
 <script src="https://cdn.lordicon.com/lordicon.js"></script>
 <script src="{%static 'js/utils.js'%}"></script>
 <script src="{%static 'js/jquery.mask.js'%}"></script>
 <script src="{%static 'js/hrnotifications.js'%}"></script>
-
 <script src="https://cdn.datatables.net/2.1.6/js/dataTables.js"></script>
 <script src="https://cdn.datatables.net/2.1.6/js/dataTables.semanticui.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.2/moment.min.js"></script>
-<!-- <script src="https://cdn.datatables.net/2.1.6/js/dataTables.js"></script> -->
 <script src="https://cdn.datatables.net/searchbuilder/1.8.0/js/dataTables.searchBuilder.js"></script>
 <script src="https://cdn.datatables.net/searchbuilder/1.8.0/js/searchBuilder.dataTables.js"></script>
 <script src="https://cdn.datatables.net/buttons/3.1.2/js/dataTables.buttons.js"></script>
 <script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.dataTables.js"></script>
 <script src="https://cdn.datatables.net/datetime/1.5.3/js/dataTables.dateTime.min.js"></script>
 
-
 <script>
-    $(document).ready(function() {
-        $('.ui.cards .item').tab();
-        $('.ui.cards .item').click(function(){
-            $('.ui.cards .item').removeClass('primary');
-            $(this).addClass('primary');
-        })
-        $('.ui.dropdown').dropdown({
-            clearable: true,
-        })
+$(document).ready(function () {
 
-        /* Tablas */
-        DataTable.datetime('YYYY-MM-DD');
-        var tablacargosestructura = new DataTable('#table-cargo-estruct', {
-            "paging": false,
-            "searching": false,
-            processing: true,
-            "info": false,
-            "order": [[ 0, "asc" ]],
-            "ajax": {
-                url: window.location.href+'?todo=datatable-EIbyarea',
-                dataSrc: "data"
-            },
-            "columns": [
-                { "data": "descripcion" },
-                { "data": "criticidad" },
-                { "data": "cantidad_aprobada" },
-                { "data": "cantidad_actual" },
-                { "data": "diferencia" }
-            ],
-            columnDefs: [
-                {targets:[1,2,3,4],className: 'text-center'},
-            ],
-            footerCallback: function (row, data, start, end, display) {
-                var api = this.api();
-    
-                // Remove the formatting to get integer data for summation
-                var intVal = function (i) {
-                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
-                };
-                // Total over all pages
-                for (i=2;i<=4;i++){
-                    total = api
-                       .column(i)
-                       .data()
-                       .reduce(function (a, b) {
-                            return intVal(a) + intVal(b);
-                        }, 0);
-                    // Update footer
-                    $(api.column(i).footer()).html( total  );
-                }
-            },
-        })
-        var tablacargos = new DataTable('#table-cargos', {
-            "paging": false,
-            "searching": false,
-            processing: true,
-            "info": false,
-            "order": [[ 0, "asc" ]],
-            "ajax": {
-                url: window.location.href+'?todo=datatable-EIbyarea',
-                dataSrc: "data"
-            },
-            "columns": [
-                { "data": "descripcion" },
-                { "data": "criticidad" },
-                { "data": "cantidad_actual" },
-            ],
-            columnDefs: [
-                {targets:[1,2],className: 'text-center'},
-            ],
-            footerCallback: function (row, data, start, end, display) {
-                var api = this.api();
-    
-                // Remove the formatting to get integer data for summation
-                var intVal = function (i) {
-                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
-                };
-                // Total over all pages
-                for (i=2;i<=2;i++){
-                    total = api
-                       .column(i)
-                       .data()
-                       .reduce(function (a, b) {
-                            return intVal(a) + intVal(b);
-                        }, 0);
-                    // Update footer
-                    $(api.column(i).footer()).html( total  );
-                }
-            },
-        })
-        var tabla_areas = new DataTable('#table-areas', {
-            "paging": false,
-            "searching": false,
-            processing: true,
-            "info": false,
-            "order": [[ 0, "asc" ]],
-            "ajax": {
-                url: window.location.href+'?todo=datatable-areas-by-estructura',
-                dataSrc: "data"
-            },
-            "columns": [
-                { "data": "descripcion" },
-                { "data": "cantidad_actual" },
-            ],
-            columnDefs: [
-                {targets:[1],className: 'text-center'},
-            ],
-            footerCallback: function (row, data, start, end, display) {
-                var api = this.api();
-    
-                // Remove the formatting to get integer data for summation
-                var intVal = function (i) {
-                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
-                };
-                // Total over all pages
-                for (i=1;i<=1;i++){
-                    total = api
-                       .column(i)
-                       .data()
-                       .reduce(function (a, b) {
-                            return intVal(a) + intVal(b);
-                        }, 0);
-                    // Update footer
-                    $(api.column(i).footer()).html( total  );
-                }
-            },
-        })
-        
-        $('#table-cargo-estruct tbody').on('click','tr', function(){
-            tablacargosestructura.$('tr.selected').removeClass('selected');
-            $(this).addClass('selected')
-            let rowData = tablacargosestructura.row( this ).data();
-            $('#modal-cambio-estructura').modal('show')
-            $('#id-nueva-cantidad-estructura').val(rowData.cantidad_aprobada)
-            $('#id_criticidad_cargo').dropdown('set selected',rowData.criticidad)
-        })
-        $('#table-cargos tbody').on('click','tr', function(){
-            tablacargos.$('tr.selected').removeClass('selected');
-            $(this).addClass('selected')
-            let rowData = tablacargos.row( this ).data();
-        })
-        
-        /* Modals */
-        $('#modal-cambio-estructura').modal({
-            keyboardShortcuts : false,
-            closeIcon: true,
-            onApprove: function(){
-                button = $('#modal-cambio-estructura').find('button.approve')
-                button.addClass('disabled loading')
-                cantidad = $('#id-nueva-cantidad-estructura').val()
-                criticidad = $('#id_criticidad_cargo').val()
+    /* ── Estado ──────────────────────────────────────────────── */
+    const BASE_URL = window.location.href;
+    let currentEstructura = { id: null, nombre: null };
+    let currentArea       = { id: null, nombre: null };
+    let tablaAreas  = null;
+    let tablaCargos = null;
 
-                if (cantidad < 0){
-                    $.toast({
-                        displayTime: 'auto',
-                        showProgress: 'top',
-                        class: 'error',
-                        classProgress: 'error',
-                        message: 'La cantidad no puede ser negativa'
-                    })
-                    return false
-                }
-                cargo = tablacargosestructura.row( '.selected' ).data().id
-                form = new FormData()
-                form.append('todo','update_ei')
-                form.append('csrfmiddlewaretoken', getCookie('csrftoken'))
-                form.append('cargo',cargo)
-                form.append('cantidad',cantidad)
-                form.append('criticidad',criticidad)
-                $.ajax({
-                    type:"POST",
-                    url: window.location.href,
-                    data: form,
-                    contentType: false,
-                    processData: false,
-                    success: function (response) {
-                        $.toast({
-                            displayTime: 'auto',
-                            showProgress: 'top',
-                            class:response.class,
-                            classProgress:response.class,
-                            message: response.message
-                        })
-                        tablacargosestructura.ajax.reload(function(){
-                            $('#modal-cambio-estructura').modal('hide')
-                            button.removeClass('disabled loading')
-                        })
-                    },
-                    error: function(xhr, status, error){
-                        $.toast({
-                            displayTime: 'auto',
-                            showProgress: 'top',
-                            class: 'error',
-                            classProgress: 'error',
-                            message: 'Error al actualizar la cantidad'
-                        })
-                        button.removeClass('disabled loading')
-                    }
-                })
-                return false;
-            }
-        })
-        $('#modal-nuevo-cargo').modal({
-            keyboardShortcuts : false,
-            closeIcon: true,
-            onApprove: function(){
-                let area = $('#id_areas_cargos').val()
-                button = $('#modal-nuevo-cargo').find('button.approve')
-                button.addClass('disabled loading')
-                let form = $('#form-descripcion')
-                form.addClass('loading')
-                let formdata = new FormData(form[0])
-                let error = false
-                form.find('input,select').each(function(){
-                    if ($(this).val()=='') error = true
-                })
-                if (error) {
-                    $.toast({
-                            displayTime: 'auto',
-                            showProgress: 'top',
-                            class: 'error',
-                            classProgress: 'error',
-                            message: 'Todos los campos son obligatorios'
-                        })
-                        form.removeClass('loading')
-                        button.removeClass('disabled loading')
-                        return false;
-                }
-                formdata.append('todo','add_cargo')
-                formdata.append('area',area)
-                $.ajax({
-                    type:"POST",
-                    url: window.location.href,
-                    data: formdata,
-                    contentType: false,
-                    processData: false,
-                    success: function (response) {
-                        $.toast({
-                            displayTime: 'auto',
-                            showProgress: 'top',
-                            class:response.class,
-                            classProgress:response.class,
-                            message: response.message
-                        })
-                        tablacargos.ajax.reload(function(){
-                            $('#modal-nuevo-cargo').modal('hide')
-                            form.removeClass('loading')
-                            button.removeClass('disabled loading')
-                        })
-                    },
-                    error: function(xhr, status, error){
-                        $.toast({
-                            displayTime: 'auto',
-                            showProgress: 'top',
-                            class: 'error',
-                            classProgress: 'error',
-                            message: 'Error al actualizar la cantidad'
-                        })
-                        form.removeClass('loading')
-                        button.removeClass('disabled loading')
-                    }
-                })
-                return false;
-            }
-        })
-        $('#modal-nuevo-area').modal({
-            keyboardShortcuts : false,
-            closeIcon: true,
-            onApprove: function(){
-                let estructura = $('#id_estructuras_areas').val()
-                button = $('#modal-nuevo-area').find('button.approve')
-                button.addClass('disabled loading')
-                let form = $('#form-area-nueva')
-                form.addClass('loading')
-                let formdata = new FormData(form[0])
-                formdata.append('todo','add_area')
-                formdata.append('estructura',estructura)
-                $.ajax({
-                    type:"POST",
-                    url: window.location.href,
-                    data: formdata,
-                    contentType: false,
-                    processData: false,
-                    success: function (response) {
-                        $.toast({
-                            displayTime: 'auto',
-                            showProgress: 'top',
-                            class:response.class,
-                            classProgress:response.class,
-                            message: response.message
-                        })
-                        tabla_areas.ajax.reload(function(){
-                            $('#modal-nuevo-area').modal('hide')
-                            form.removeClass('loading')
-                            button.removeClass('disabled loading')
-                        })
-                    },
-                    error: function(xhr, status, error){
-                        $.toast({
-                            displayTime: 'auto',
-                            showProgress: 'top',
-                            class: 'error',
-                            classProgress: 'error',
-                            message: 'Error al crear el area'
-                        })
-                        form.removeClass('loading')
-                        button.removeClass('disabled loading')
-                    }
-                })
-                return false;
-            }
-        })
+    /* ── Inicialización ──────────────────────────────────────── */
+    DataTable.datetime('YYYY-MM-DD');
 
+    $('.ui.dropdown').dropdown({ clearable: true });
 
-
-        /* Dropdowns */
-      $('#id_estructuras_EI').change(function(){
-        let estructura = $(this).val()
-        if (estructura == ''){
-          $('#id_areas_EI').parent('.ui.dropdown').dropdown({values:[]});
-            /* $('#id_cargo').parent('.ui.dropdown').dropdown({values:[]}); */
+    $('#estructura-tree').accordion({
+        exclusive: false,
+        onOpen: function () {
+            loadAreasInTree($(this).data('estructura'));
         }
-        $.ajax({
-          type: "GET",
-          url: '/humanresources/utils/dependentlist',
-          data:{
-            todo:'areasbyestructura',
-            estructura:estructura
-          },
-          success: function(response){
-            $('#id_areas_EI').parent('.ui.dropdown').dropdown({values:response.data});
-          },
-          error: function(xhr, status, error){
-            $.toast({
-              displayTime: 'auto',
-              showProgress: 'top',
-              class: 'error',
-              classProgress: 'error',
-              message: 'Error al cargar las áreas'
-            })
-          }
-        })
-      })
-      $('#id_areas_EI').change(function(){
-        let area = $(this).val()
-
-        url = window.location.href+`?todo=datatable-EIbyarea&area=${area}`
-        tablacargosestructura.ajax.url(url).load()
-      })
-      $('#id_estructuras_cargos').change(function(){
-        let estructura = $(this).val()
-        if (estructura == ''){
-          $('#id_areas_cargos').parent('.ui.dropdown').dropdown({values:[]});
-            /* $('#id_cargo').parent('.ui.dropdown').dropdown({values:[]}); */
-        }
-        $.ajax({
-          type: "GET",
-          url: '/humanresources/utils/dependentlist',
-          data:{
-            todo:'areasbyestructura',
-            estructura:estructura
-          },
-          success: function(response){
-            $('#id_areas_cargos').parent('.ui.dropdown').dropdown({values:response.data});
-          },
-          error: function(xhr, status, error){
-            $.toast({
-              displayTime: 'auto',
-              showProgress: 'top',
-              class: 'error',
-              classProgress: 'error',
-              message: 'Error al cargar las áreas'
-            })
-          }
-        })
-      })
-      $('#id_areas_cargos').change(function(){
-        let area = $(this).val()
-
-        url = window.location.href+`?todo=datatable-EIbyarea&area=${area}`
-        tablacargos.ajax.url(url).load()
-      })
-      $('#id_estructuras_areas').change(function(){
-        let estructura = $(this).val()
-
-        url = window.location.href+`?todo=datatable-areas-by-estructura&estructura=${estructura}`
-        tabla_areas.ajax.url(url).load()
-      })
-
-      /* Buttons */
-      $('#btn-add-cargos').click(function(){
-        let area = $('#id_areas_cargos').val()
-        if (area == '') {
-            $.toast({
-                displayTime: 'auto',
-                showProgress: 'top',
-                class: 'error',
-                classProgress: 'error',
-                message: 'Debes seleccionar una área'
-            })
-            return false
-        }
-        $('#modal-nuevo-cargo').modal('show')
-      })
-      $('#btn-add-areas').click(function(){
-        let estructura = $('#id_estructuras_areas').val()
-        if (estructura == '') {
-            $.toast({
-                displayTime: 'auto',
-                showProgress: 'top',
-                class: 'error',
-                classProgress: 'error',
-                message: 'Debes seleccionar una estructura'
-            })
-            return false
-        }
-        $('#modal-nuevo-area').modal('show')
-      })
-
     });
+
+    /* ── Árbol: carga lazy de áreas ──────────────────────────── */
+    function loadAreasInTree(estructuraId) {
+        var $container = $('#areas-list-' + estructuraId);
+        if ($container.hasClass('loaded')) return;
+
+        $container.html(
+            '<div style="padding:0.4rem 0;color:#bbb;font-size:0.82rem;">' +
+            '<i class="spinner loading icon"></i> Cargando...</div>'
+        );
+
+        $.ajax({
+            url: '/humanresources/utils/dependentlist',
+            data: { todo: 'areasbyestructura', estructura: estructuraId },
+            success: function (response) {
+                $container.empty().addClass('loaded');
+                if (!response.data || response.data.length === 0) {
+                    $container.html(
+                        '<div style="padding:0.4rem 0;color:#bbb;font-size:0.82rem;">' +
+                        '<i class="info circle icon"></i> Sin áreas</div>'
+                    );
+                    return;
+                }
+                $.each(response.data, function (_, a) {
+                    $container.append(
+                        '<div class="area-item" ' +
+                            'data-id="' + a.value + '" ' +
+                            'data-nombre="' + a.name + '" ' +
+                            'data-estructura="' + estructuraId + '" ' +
+                            'style="padding:0.42rem 0.6rem;cursor:pointer;border-radius:4px;' +
+                                   'margin:2px 2px;font-size:0.85rem;color:#555;' +
+                                   'transition:background 0.12s,color 0.12s;">' +
+                            '<i class="map marker alternate icon" style="color:#4bb3fd;font-size:0.82em;"></i> ' +
+                            a.name +
+                        '</div>'
+                    );
+                });
+            },
+            error: function () {
+                $container.html(
+                    '<div style="padding:0.4rem 0;color:#e44;font-size:0.82rem;">' +
+                    '<i class="exclamation circle icon"></i> Error al cargar</div>'
+                );
+            }
+        });
+    }
+
+    function reloadAreasInTree(estructuraId) {
+        var $container = $('#areas-list-' + estructuraId);
+        $container.removeClass('loaded').empty();
+        loadAreasInTree(estructuraId);
+    }
+
+    /* ── Árbol: resaltado de selección ───────────────────────── */
+    function highlightNode(type, id) {
+        $('.estructura-node').css({ background: '', color: '' });
+        $('.area-item').css({ background: '', color: '' });
+        if (type === 'estructura') {
+            $('.estructura-node[data-id="' + id + '"]').css({
+                background: '#e8f4fd', color: '#1a6fbf'
+            });
+        } else {
+            $('.area-item[data-id="' + id + '"]').css({
+                background: '#e8f4fd', color: '#1a6fbf'
+            });
+        }
+    }
+
+    /* ── Clicks en el árbol ──────────────────────────────────── */
+    $(document).on('click', '.estructura-node', function () {
+        var id     = $(this).data('id');
+        var nombre = $(this).data('nombre');
+        highlightNode('estructura', id);
+        selectEstructura(id, nombre);
+    });
+
+    $(document).on('click', '.area-item', function (e) {
+        e.stopPropagation();
+        var areaId          = $(this).data('id');
+        var areaNombre      = $(this).data('nombre');
+        var estructuraId    = $(this).data('estructura');
+        var estructuraNombre = $('.estructura-node[data-id="' + estructuraId + '"]').data('nombre');
+        highlightNode('area', areaId);
+        selectArea(areaId, areaNombre, estructuraId, estructuraNombre);
+    });
+
+    /* ── Seleccionar estructura → panel de áreas ─────────────── */
+    function selectEstructura(id, nombre) {
+        currentEstructura = { id: id, nombre: nombre };
+        currentArea       = { id: null, nombre: null };
+
+        $('#bc-estructura').text(nombre);
+        $('#bc-area-group').hide();
+
+        $('#panel-title').html('<i class="building outline icon" style="color:#888;"></i> ' + nombre);
+
+        $('#btn-add-area-panel').show();
+        $('#btn-add-cargo-panel').hide();
+
+        $('#cargos-section').hide();
+        $('#areas-section').show();
+
+        var url = BASE_URL + '?todo=datatable-areas-by-estructura&estructura=' + id;
+        if (!tablaAreas) {
+            tablaAreas = buildTablaAreas(url);
+        } else {
+            tablaAreas.ajax.url(url).load();
+            setTimeout(function () { tablaAreas.columns.adjust(); }, 120);
+        }
+
+        showPanel();
+    }
+
+    /* ── Seleccionar área → panel de cargos ──────────────────── */
+    function selectArea(areaId, areaNombre, estructuraId, estructuraNombre) {
+        currentEstructura = { id: estructuraId, nombre: estructuraNombre };
+        currentArea       = { id: areaId,       nombre: areaNombre };
+
+        $('#bc-estructura').text(estructuraNombre);
+        $('#bc-area').text(areaNombre);
+        $('#bc-area-group').show();
+
+        $('#panel-title').html(
+            '<i class="map marker alternate icon" style="color:#4bb3fd;"></i> ' + areaNombre
+        );
+
+        $('#btn-add-area-panel').hide();
+        $('#btn-add-cargo-panel').show();
+
+        $('#areas-section').hide();
+        $('#cargos-section').show();
+
+        var url = BASE_URL + '?todo=datatable-EIbyarea&area=' + areaId;
+        if (!tablaCargos) {
+            tablaCargos = buildTablaCargos(url);
+        } else {
+            tablaCargos.ajax.url(url).load();
+            setTimeout(function () { tablaCargos.columns.adjust(); }, 120);
+        }
+
+        showPanel();
+    }
+
+    function showPanel() {
+        $('#empty-state').hide();
+        $('#active-panel').show();
+    }
+
+    /* ── Construcción de DataTables ──────────────────────────── */
+    function buildTablaAreas(url) {
+        return new DataTable('#table-areas-new', {
+            paging: false, searching: false, processing: true, info: false,
+            order: [[0, 'asc']],
+            ajax: { url: url, dataSrc: 'data' },
+            columns: [
+                { data: 'descripcion' },
+                { data: 'cantidad_actual', className: 'text-center' }
+            ],
+            footerCallback: function () {
+                var api   = this.api();
+                var total = api.column(1).data().reduce(function (a, b) {
+                    return (parseInt(a) || 0) + (parseInt(b) || 0);
+                }, 0);
+                $(api.column(1).footer()).html(total);
+            }
+        });
+    }
+
+    function buildTablaCargos(url) {
+        var dt = new DataTable('#table-cargos-new', {
+            paging: false, searching: false, processing: true, info: false,
+            order: [[0, 'asc']],
+            ajax: { url: url, dataSrc: 'data' },
+            columns: [
+                { data: 'descripcion' },
+                { data: 'criticidad',       className: 'text-center' },
+                { data: 'cantidad_aprobada', className: 'text-center' },
+                { data: 'cantidad_actual',   className: 'text-center' },
+                { data: 'diferencia',        className: 'text-center' }
+            ],
+            footerCallback: function () {
+                var api    = this.api();
+                var intVal = function (i) {
+                    return typeof i === 'string'
+                        ? i.replace(/[\$,]/g, '') * 1
+                        : (typeof i === 'number' ? i : 0);
+                };
+                for (var col = 2; col <= 4; col++) {
+                    var total = api.column(col).data().reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+                    $(api.column(col).footer()).html(total);
+                }
+            }
+        });
+
+        /* Clic en fila → abrir modal edición */
+        $('#table-cargos-new tbody').on('click', 'tr', function () {
+            dt.$('tr.selected').removeClass('selected');
+            $(this).addClass('selected');
+            var rowData = dt.row(this).data();
+            if (!rowData) return;
+            $('#modal-cambio-estructura').modal('show');
+            $('#id-nueva-cantidad-estructura').val(rowData.cantidad_aprobada);
+            $('#id_criticidad_cargo').dropdown('set selected', rowData.criticidad);
+        });
+
+        return dt;
+    }
+
+    /* ── Modal: editar cargo ─────────────────────────────────── */
+    $('#modal-cambio-estructura').modal({
+        keyboardShortcuts: false,
+        closeIcon: true,
+        onApprove: function () {
+            var button    = $('#modal-cambio-estructura').find('button.approve').addClass('disabled loading');
+            var cantidad  = $('#id-nueva-cantidad-estructura').val();
+            var criticidad = $('#id_criticidad_cargo').val();
+
+            if (cantidad < 0) {
+                $.toast({ displayTime: 'auto', showProgress: 'top',
+                          class: 'error', classProgress: 'error',
+                          message: 'La cantidad no puede ser negativa' });
+                button.removeClass('disabled loading');
+                return false;
+            }
+
+            var cargo = tablaCargos.row('.selected').data().id;
+            var form  = new FormData();
+            form.append('todo', 'update_ei');
+            form.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+            form.append('cargo', cargo);
+            form.append('cantidad', cantidad);
+            form.append('criticidad', criticidad);
+
+            $.ajax({
+                type: 'POST', url: BASE_URL, data: form,
+                contentType: false, processData: false,
+                success: function (r) {
+                    $.toast({ displayTime: 'auto', showProgress: 'top',
+                              class: r.class, classProgress: r.class, message: r.message });
+                    tablaCargos.ajax.reload(function () {
+                        $('#modal-cambio-estructura').modal('hide');
+                        button.removeClass('disabled loading');
+                    });
+                },
+                error: function () {
+                    $.toast({ displayTime: 'auto', showProgress: 'top',
+                              class: 'error', classProgress: 'error',
+                              message: 'Error al actualizar el cargo' });
+                    button.removeClass('disabled loading');
+                }
+            });
+            return false;
+        }
+    });
+
+    /* ── Modal: nuevo cargo ──────────────────────────────────── */
+    $('#modal-nuevo-cargo').modal({
+        keyboardShortcuts: false,
+        closeIcon: true,
+        onApprove: function () {
+            var button   = $('#modal-nuevo-cargo').find('button.approve').addClass('disabled loading');
+            var $form    = $('#form-descripcion');
+            $form.addClass('loading');
+            var formdata = new FormData($form[0]);
+            var hasEmpty = false;
+            $form.find('input,select').each(function () {
+                if (!$(this).val()) hasEmpty = true;
+            });
+            if (hasEmpty) {
+                $.toast({ displayTime: 'auto', showProgress: 'top',
+                          class: 'error', classProgress: 'error',
+                          message: 'Todos los campos son obligatorios' });
+                $form.removeClass('loading');
+                button.removeClass('disabled loading');
+                return false;
+            }
+            formdata.append('todo', 'add_cargo');
+            formdata.append('area', currentArea.id);
+            $.ajax({
+                type: 'POST', url: BASE_URL, data: formdata,
+                contentType: false, processData: false,
+                success: function (r) {
+                    $.toast({ displayTime: 'auto', showProgress: 'top',
+                              class: r.class, classProgress: r.class, message: r.message });
+                    if (tablaCargos) tablaCargos.ajax.reload();
+                    $('#modal-nuevo-cargo').modal('hide');
+                    $form.removeClass('loading');
+                    button.removeClass('disabled loading');
+                },
+                error: function () {
+                    $.toast({ displayTime: 'auto', showProgress: 'top',
+                              class: 'error', classProgress: 'error',
+                              message: 'Error al crear el cargo' });
+                    $form.removeClass('loading');
+                    button.removeClass('disabled loading');
+                }
+            });
+            return false;
+        }
+    });
+
+    /* ── Modal: nueva área ───────────────────────────────────── */
+    $('#modal-nuevo-area').modal({
+        keyboardShortcuts: false,
+        closeIcon: true,
+        onApprove: function () {
+            var button   = $('#modal-nuevo-area').find('button.approve').addClass('disabled loading');
+            var $form    = $('#form-area-nueva');
+            $form.addClass('loading');
+            var formdata = new FormData($form[0]);
+            formdata.append('todo', 'add_area');
+            formdata.append('estructura', currentEstructura.id);
+            $.ajax({
+                type: 'POST', url: BASE_URL, data: formdata,
+                contentType: false, processData: false,
+                success: function (r) {
+                    $.toast({ displayTime: 'auto', showProgress: 'top',
+                              class: r.class, classProgress: r.class, message: r.message });
+                    if (tablaAreas) tablaAreas.ajax.reload();
+                    reloadAreasInTree(currentEstructura.id);
+                    $('#modal-nuevo-area').modal('hide');
+                    $form.removeClass('loading');
+                    button.removeClass('disabled loading');
+                },
+                error: function () {
+                    $.toast({ displayTime: 'auto', showProgress: 'top',
+                              class: 'error', classProgress: 'error',
+                              message: 'Error al crear el área' });
+                    $form.removeClass('loading');
+                    button.removeClass('disabled loading');
+                }
+            });
+            return false;
+        }
+    });
+
+    /* ── Botones de acción ───────────────────────────────────── */
+    $('#btn-add-area-panel').click(function () {
+        if (!currentEstructura.id) return;
+        $('#modal-nuevo-area').modal('show');
+    });
+
+    $('#btn-add-cargo-panel').click(function () {
+        if (!currentArea.id) return;
+        $('#modal-nuevo-cargo').modal('show');
+    });
+
+});
 </script>
 {%endblock%}
+
 {%block style%}
 <link rel="stylesheet" href="https://cdn.datatables.net/2.1.6/css/dataTables.semanticui.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/searchbuilder/1.8.0/css/searchBuilder.semanticui.css">
@@ -733,23 +613,24 @@
 <link rel="stylesheet" href="https://cdn.datatables.net/datetime/1.5.3/css/dataTables.dateTime.min.css">
 <link rel="stylesheet" href="{%static 'css/hrnotifications.css'%}">
 <style>
-/*   th {
-    text-align:center!important;
-  }
-  td {
-    font-size: x-small;
-  } */
-  tbody{
-    cursor: pointer;
-  }
+    tbody { cursor: pointer; }
+    .sticky { position: sticky !important; top: 0 !important; }
+    .text-center { text-align: center !important; }
+    .text-right  { text-align: right  !important; }
 
-  .sticky{
-    position: sticky!important;
-    top:0!important;
-  }
+    /* Hover en nodos del árbol */
+    .estructura-node:hover {
+        background: #f0f7ff !important;
+        color: #1a6fbf !important;
+    }
+    .area-item:hover {
+        background: #f0f7ff !important;
+        color: #1a6fbf !important;
+    }
 
-  .text-center {
-    text-align: center!important;
-  }
+    /* Scroll suave en el árbol */
+    #tree-panel { scrollbar-width: thin; scrollbar-color: #ddd #f8f9fb; }
+    #tree-panel::-webkit-scrollbar { width: 5px; }
+    #tree-panel::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
 </style>
 {%endblock%}

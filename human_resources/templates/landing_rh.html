@@ -15,28 +15,28 @@
       <div class="kpi-ico"><i class="users icon"></i></div>
       <div class="kpi-body">
         <div class="kpi-lbl">Total empleados</div>
-        <div class="kpi-val" id="v-total">—</div>
+        <div class="kpi-val kpi-skel" id="v-total"></div>
       </div>
     </div>
     <div class="kpi-card" id="k-vacantes">
       <div class="kpi-ico"><i class="briefcase icon"></i></div>
       <div class="kpi-body">
         <div class="kpi-lbl">Vacantes abiertas</div>
-        <div class="kpi-val" id="v-vacantes">—</div>
+        <div class="kpi-val kpi-skel" id="v-vacantes"></div>
       </div>
     </div>
     <div class="kpi-card">
       <div class="kpi-ico"><i class="dollar sign icon"></i></div>
       <div class="kpi-body">
         <div class="kpi-lbl">Nómina mensual</div>
-        <div class="kpi-val" id="v-nomina">—</div>
+        <div class="kpi-val kpi-skel" id="v-nomina"></div>
       </div>
     </div>
     <div class="kpi-card">
       <div class="kpi-ico"><i class="chart line icon"></i></div>
       <div class="kpi-body">
         <div class="kpi-lbl">Salario promedio</div>
-        <div class="kpi-val" id="v-avg">—</div>
+        <div class="kpi-val kpi-skel" id="v-avg"></div>
       </div>
     </div>
   </div>
@@ -44,23 +44,27 @@
   <div id="chart-grid">
     <div class="card" id="c-gerencia">
       <div class="card-hdr">HC por Gerencia</div>
-      <div id="ch-gerencia" class="chart-box"></div>
+      <div id="ch-gerencia" class="chart-box"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
     </div>
     <div class="card" id="c-genero">
       <div class="card-hdr">HC por Género</div>
-      <div id="ch-genero" class="chart-box"></div>
+      <div id="ch-genero" class="chart-box"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
     </div>
     <div class="card" id="c-sede">
       <div class="card-hdr">HC por Sede</div>
-      <div id="ch-sede" class="chart-box chart-box-tall"></div>
+      <div id="ch-sede" class="chart-box chart-box-tall"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
     </div>
     <div class="card" id="c-contrato">
       <div class="card-hdr">HC por Tipo de Contrato</div>
-      <div id="ch-contrato" class="chart-box"></div>
+      <div id="ch-contrato" class="chart-box"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
     </div>
     <div class="card" id="c-salario">
-      <div class="card-hdr">HC por Grupo Salarial</div>
-      <div id="ch-salario" class="chart-box"></div>
+      <div class="card-hdr">HC y Salario promedio por Grupo Salarial</div>
+      <div id="ch-salario" class="chart-box"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
+    </div>
+    <div class="card" id="c-vac-gerencia">
+      <div class="card-hdr">Vacantes por Gerencia</div>
+      <div id="ch-vac-gerencia" class="chart-box chart-box-vac"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
     </div>
   </div>
 
@@ -134,10 +138,15 @@
     const avg     = nomina / total;
     const vacantes = pos.reduce(function (s, r) { return s + (r[7] > 0 ? r[7] : 0); }, 0);
 
-    document.getElementById('v-total').textContent   = total.toLocaleString('es-CO');
-    document.getElementById('v-vacantes').textContent = vacantes.toLocaleString('es-CO');
-    document.getElementById('v-nomina').textContent  = fmtMoney(nomina);
-    document.getElementById('v-avg').textContent     = fmtMoney(avg);
+    function setKpi(id, value) {
+      var el = document.getElementById(id);
+      el.classList.remove('kpi-skel');
+      el.textContent = value;
+    }
+    setKpi('v-total',   total.toLocaleString('es-CO'));
+    setKpi('v-vacantes', vacantes.toLocaleString('es-CO'));
+    setKpi('v-nomina',  fmtMoney(nomina));
+    setKpi('v-avg',     fmtMoney(avg));
 
     var vacCard = document.getElementById('k-vacantes');
     vacCard.classList.add(vacantes === 0 ? 'kpi-ok' : vacantes < 10 ? 'kpi-warn' : 'kpi-alert');
@@ -218,24 +227,97 @@
       tooltip: { pointFormat: '<b>{point.category}</b>: {point.y} empleados' }
     });
 
-    /* ── HC por Grupo Salarial ── */
-    var rangos = countBy(rows, 19);
+    /* ── HC y Salario promedio por Grupo Salarial (combo) ── */
+    var salStats = {};
+    rows.forEach(function (r) {
+      var g = r[19] || 'Sin dato';
+      if (!salStats[g]) salStats[g] = { count: 0, total: 0 };
+      salStats[g].count++;
+      salStats[g].total += r[15] || 0;
+    });
+    var salEntries = Object.entries(salStats).sort(function (a, b) { return b[1].count - a[1].count; });
+    var salCats   = salEntries.map(function (e) { return e[0]; });
+    var salCounts = salEntries.map(function (e) { return e[1].count; });
+    var salAvgs   = salEntries.map(function (e) { return Math.round(e[1].total / e[1].count); });
+
     Highcharts.chart('ch-salario', {
       chart: { type: 'column' },
-      xAxis: { categories: rangos.map(function (r) { return r[0]; }), title: { text: null } },
-      yAxis: { min: 0, title: { text: 'Empleados' }, allowDecimals: false },
-      series: [{
-        name: 'Empleados',
-        data: rangos.map(function (r, i) { return { y: r[1], color: PALETTE[i % PALETTE.length] }; }),
-        dataLabels: { enabled: true }
-      }],
-      legend: { enabled: false },
-      tooltip: { pointFormat: '<b>{point.category}</b>: {point.y} empleados' }
+      xAxis: { categories: salCats, title: { text: null } },
+      yAxis: [
+        { title: { text: 'Empleados' }, allowDecimals: false, min: 0 },
+        { title: { text: 'Salario promedio' }, opposite: true, min: 0,
+          labels: { formatter: function () { return fmtMoney(this.value); } } }
+      ],
+      series: [
+        { name: 'HC', type: 'column', yAxis: 0,
+          data: salCounts.map(function (v, i) { return { y: v, color: PALETTE[i % PALETTE.length] }; }),
+          dataLabels: { enabled: true } },
+        { name: 'Salario promedio', type: 'line', yAxis: 1,
+          data: salAvgs, color: '#1e293b',
+          marker: { enabled: true, radius: 4 },
+          dataLabels: {
+            enabled: true,
+            formatter: function () { return fmtMoney(this.y); },
+            style: { fontSize: '10px', color: '#1e293b' }
+          } }
+      ],
+      tooltip: {
+        shared: true,
+        formatter: function () {
+          var s = '<b>' + this.x + '</b><br/>';
+          this.points.forEach(function (p) {
+            s += p.series.name === 'HC'
+              ? 'HC: <b>' + p.y + '</b><br/>'
+              : 'Salario prom.: <b>' + fmtMoney(p.y) + '</b>';
+          });
+          return s;
+        }
+      },
+      legend: { enabled: true, align: 'center', verticalAlign: 'bottom' }
     });
+
+    /* ── Vacantes por Gerencia ── */
+    /* positionsData cols: 0=id,1=desc,2=area_id,3=activo,4=aprobadas,
+                           5=criticidad,6=actual,7=diferencia,8=area,
+                           9=estructura,10=dependecia (gerencia) */
+    var vacByGer = {};
+    pos.forEach(function (r) {
+      var ger = r[10] || 'Sin dato';
+      var dif = r[7] > 0 ? r[7] : 0;
+      vacByGer[ger] = (vacByGer[ger] || 0) + dif;
+    });
+    var vacEntries = Object.entries(vacByGer)
+      .filter(function (e) { return e[1] > 0; })
+      .sort(function (a, b) { return b[1] - a[1]; });
+
+    if (vacEntries.length === 0) {
+      document.getElementById('ch-vac-gerencia').innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#10b981;font-weight:700;font-size:1.1em;">' +
+        '<i class="check circle icon"></i>&nbsp;Sin vacantes abiertas</div>';
+    } else {
+      Highcharts.chart('ch-vac-gerencia', {
+        chart: { type: 'bar' },
+        xAxis: { categories: vacEntries.map(function (e) { return e[0]; }), title: { text: null } },
+        yAxis: { min: 0, title: { text: 'Vacantes' }, allowDecimals: false },
+        series: [{
+          name: 'Vacantes',
+          data: vacEntries.map(function (e, i) { return { y: e[1], color: PALETTE[i % PALETTE.length] }; }),
+          dataLabels: { enabled: true }
+        }],
+        legend: { enabled: false },
+        tooltip: { pointFormat: '<b>{point.category}</b>: {point.y} vacante(s)' }
+      });
+    }
   }
 
   run().catch(function (err) {
     console.error(err);
+    ['v-total','v-vacantes','v-nomina','v-avg'].forEach(function (id) {
+      var el = document.getElementById(id);
+      el.classList.remove('kpi-skel');
+      el.textContent = '—';
+    });
+    document.querySelectorAll('.chart-loader').forEach(function (el) { el.remove(); });
     showError(err.message || 'Error desconocido inicializando el dashboard.');
   });
 }());
@@ -302,15 +384,16 @@
 #chart-grid {
   display: grid;
   grid-template-columns: 5fr 3fr 3fr;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto auto auto;
   gap: 14px;
 }
 
-#c-gerencia { grid-column: 1; grid-row: 1; }
-#c-genero   { grid-column: 2; grid-row: 1; }
-#c-sede     { grid-column: 3; grid-row: 1 / span 2; }
-#c-contrato { grid-column: 1; grid-row: 2; }
-#c-salario  { grid-column: 2; grid-row: 2; }
+#c-gerencia     { grid-column: 1;        grid-row: 1; }
+#c-genero       { grid-column: 2;        grid-row: 1; }
+#c-sede         { grid-column: 3;        grid-row: 1 / span 2; }
+#c-contrato     { grid-column: 1;        grid-row: 2; }
+#c-salario      { grid-column: 2;        grid-row: 2; }
+#c-vac-gerencia { grid-column: 1 / span 3; grid-row: 3; }
 
 .card {
   background: #fff;
@@ -332,26 +415,64 @@
 
 .chart-box      { height: 260px; }
 .chart-box-tall { height: 554px; }
+.chart-box-vac  { height: 200px; }
 
 /* ── Responsive ── */
 @media (max-width: 1100px) {
   #kpi-strip  { grid-template-columns: repeat(2, 1fr); }
-  #chart-grid {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto;
-  }
-  #c-gerencia { grid-column: 1 / span 2; grid-row: auto; }
-  #c-genero   { grid-column: 1; grid-row: auto; }
-  #c-sede     { grid-column: 2; grid-row: auto; }
-  #c-contrato { grid-column: 1; grid-row: auto; }
-  #c-salario  { grid-column: 2; grid-row: auto; }
+  #chart-grid { grid-template-columns: 1fr 1fr; grid-template-rows: auto; }
+  #c-gerencia     { grid-column: 1 / span 2; grid-row: auto; }
+  #c-genero       { grid-column: 1; grid-row: auto; }
+  #c-sede         { grid-column: 2; grid-row: auto; }
+  #c-contrato     { grid-column: 1; grid-row: auto; }
+  #c-salario      { grid-column: 2; grid-row: auto; }
+  #c-vac-gerencia { grid-column: 1 / span 2; grid-row: auto; }
   .chart-box-tall { height: 260px; }
+  .chart-box-vac  { height: 200px; }
 }
 
 @media (max-width: 640px) {
   #kpi-strip  { grid-template-columns: 1fr; }
   #chart-grid { grid-template-columns: 1fr; }
-  #c-gerencia,#c-genero,#c-sede,#c-contrato,#c-salario { grid-column: 1; grid-row: auto; }
+  #c-gerencia,#c-genero,#c-sede,#c-contrato,
+  #c-salario,#c-vac-gerencia { grid-column: 1; grid-row: auto; }
+}
+
+/* ── Loading states ── */
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.kpi-skel {
+  background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+  min-width: 90px;
+  min-height: 1.15em;
+  color: transparent;
+  display: inline-block;
+}
+
+.chart-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.chart-spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3b4cb8;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
 }
 </style>
 {%endblock%}

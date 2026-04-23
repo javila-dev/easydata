@@ -67,3 +67,4 @@ data/
 
 funciones_locales.py
 exclude-file.txt
+docker-compose.dev.yml
