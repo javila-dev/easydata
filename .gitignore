@@ -65,3 +65,5 @@ dist/
 *.tsv
 data/
 
+funciones_locales.py
+exclude-file.txt
