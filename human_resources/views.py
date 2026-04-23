@@ -1199,7 +1199,8 @@ def build_import_response(records):
     }
 
 
-def serialize_no_importables(no_importables, limit=50):
+def serialize_no_importables(no_importables, limit=None):
+    items = no_importables if limit is None else no_importables[:limit]
     return [
         {
             'fila': item.get('row_number'),
@@ -1207,7 +1208,7 @@ def serialize_no_importables(no_importables, limit=50):
             'estado': 'ACTIVO' if item.get('activo') is True else 'INACTIVO',
             'issues': item.get('issues', []),
         }
-        for item in no_importables[:limit]
+        for item in items
     ]
 
 
@@ -1505,9 +1506,9 @@ def run_initial_import_job(job_id, user_id):
             errores=summary['errores'],
             no_importables=summary['no_importables_detalle'],
             ignoradas=summary['ignored_rows'],
-            detalles_conflicto=summary['detalles_conflicto'][:50],
-            detalles_error=summary['detalles_error'][:50],
-            detalles_no_importables=summary['detalles_no_importables'][:50],
+            detalles_conflicto=summary['detalles_conflicto'],
+            detalles_error=summary['detalles_error'],
+            detalles_no_importables=summary['detalles_no_importables'],
         )
         user = User.objects.get(pk=user_id)
         if (summary['creados'] + summary['actualizados'] + summary['omitidos']) > 0:
@@ -1945,6 +1946,108 @@ def initial_personal_import_stop(request, job_id):
         'job_id': job_id,
         'status': 'STOPPING',
     })
+
+
+@login_required
+@rol_permission('Gestion humana')
+def initial_personal_import_download(request, job_id):
+    job = importacion_personal_job.objects.get(pk=job_id, usuario=request.user)
+
+    wb = openpyxl.Workbook()
+    ws_summary = wb.active
+    ws_summary.title = 'Resumen'
+    ws_summary.append(['Campo', 'Valor'])
+    summary_rows = [
+        ('Job ID', job.pk),
+        ('Archivo', job.nombre_archivo),
+        ('Estado', job.status),
+        ('Total filas', job.total_filas),
+        ('Filas importables', job.filas_importables),
+        ('Filas procesadas', job.filas_procesadas),
+        ('Creados', job.creados),
+        ('Actualizados', job.actualizados),
+        ('Omitidos', job.omitidos),
+        ('Conflictos', job.conflictos),
+        ('Errores', job.errores),
+        ('No importables', job.no_importables),
+        ('Ignoradas', job.ignoradas),
+        ('Fecha inicio', job.fecha_inicio.isoformat() if job.fecha_inicio else ''),
+        ('Fecha fin', job.fecha_fin.isoformat() if job.fecha_fin else ''),
+        ('Mensaje error', job.mensaje_error or ''),
+    ]
+    for row in summary_rows:
+        ws_summary.append(row)
+
+    def fill_sheet(ws, headers, rows):
+        ws.append(headers)
+        for row in rows:
+            ws.append(row)
+
+    ws_conflicts = wb.create_sheet('Conflictos')
+    fill_sheet(
+        ws_conflicts,
+        ['Fila', 'ID', 'Estado', 'Motivo', 'Contrato ID', 'Fecha inicio existente'],
+        [
+            [
+                item.get('fila'),
+                item.get('id'),
+                item.get('estado'),
+                item.get('motivo'),
+                item.get('contrato_id'),
+                item.get('fecha_inicio_existente'),
+            ]
+            for item in job.detalles_conflicto
+        ],
+    )
+
+    ws_errors = wb.create_sheet('Errores')
+    fill_sheet(
+        ws_errors,
+        ['Fila', 'ID', 'Estado', 'Error'],
+        [
+            [
+                item.get('fila'),
+                item.get('id'),
+                item.get('estado'),
+                item.get('error'),
+            ]
+            for item in job.detalles_error
+        ],
+    )
+
+    ws_no_import = wb.create_sheet('No importables')
+    fill_sheet(
+        ws_no_import,
+        ['Fila', 'ID', 'Estado', 'Issues'],
+        [
+            [
+                item.get('fila'),
+                item.get('id'),
+                item.get('estado'),
+                ', '.join(item.get('issues', [])),
+            ]
+            for item in job.detalles_no_importables
+        ],
+    )
+
+    for worksheet in wb.worksheets:
+        for column in worksheet.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                value = '' if cell.value is None else str(cell.value)
+                if len(value) > max_length:
+                    max_length = len(value)
+            worksheet.column_dimensions[column_letter].width = min(max_length + 2, 60)
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = (
+        f'attachment; filename="importacion_personal_job_{job.pk}_detalle.xlsx"'
+    )
+    wb.save(response)
+    return response
         
 def safe_value(value):
      return "" if value is None else value

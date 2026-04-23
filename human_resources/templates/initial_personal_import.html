@@ -36,6 +36,7 @@
         <h3 class="ui left floated header" id="job-title">Importación en curso</h3>
         <div class="ui right floated buttons">
           <button type="button" class="ui red basic button" id="btn-stop-import" disabled>Stop</button>
+          <button type="button" class="ui basic button" id="btn-download-job-report" disabled>Descargar detalle</button>
           <div class="ui label" id="job-status-label">PENDING</div>
         </div>
       </div>
@@ -192,7 +193,9 @@
       $('#stat-ignored').text(data.ignoradas || 0);
 
       const canStop = ['PENDING', 'MAPPING', 'RUNNING', 'STOPPING'].includes(data.status);
+      const canDownload = ['COMPLETED', 'FAILED', 'STOPPED'].includes(data.status);
       $('#btn-stop-import').prop('disabled', !canStop);
+      $('#btn-download-job-report').prop('disabled', !canDownload);
       if (data.status === 'STOPPING') {
         $('#btn-stop-import').addClass('loading disabled');
       } else {
@@ -342,6 +345,13 @@
           button.removeClass('loading disabled');
         }
       });
+    });
+
+    $('#btn-download-job-report').click(function () {
+      if (!currentJobId) {
+        return;
+      }
+      window.open(`/humanresources/initial-import/download/${currentJobId}`, '_blank');
     });
   });
 </script>
