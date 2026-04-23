@@ -329,23 +329,24 @@
         columns:[
           {'data':'numero_identificacion'},
           {'data':'get_full_name'},
-          {'data':'contrato_activo.cargo.descripcion',},
-          {'data':'contrato_activo.area.descripcion'},
-          {'data':'contrato_activo.area.estructura.descripcion'},
+          {'data':'contrato_activo.cargo.descripcion', defaultContent: ''},
+          {'data':'contrato_activo.area.descripcion', defaultContent: ''},
+          {'data':'contrato_activo.area.estructura.descripcion', defaultContent: ''},
           {'data':'contrato_activo.salario_base',
             render: function(data){
-              return new Intl.NumberFormat('en-EN').format(data)
+              const numericValue = Number(data || 0)
+              return new Intl.NumberFormat('en-EN').format(numericValue)
             }
           },
           {'data':'contrato_activo.tipo_ingreso',
             render: function(data, type, row){
-              tipos = {
+              const tipos = {
                 'T': 'Temporal',
                 'A': 'Aprendizaje',
                 'V': 'Vinculado'
               }
 
-              return tipos[data]
+              return tipos[data] || ''
             }
           },
           {'data':'activo',
@@ -377,6 +378,10 @@
         return (!nestedValue || nestedValue == 'None') ? '' : nestedValue
       }
 
+      function hasContract(line){
+        return !!(line && line.contrato_activo && Object.keys(line.contrato_activo).length > 0 && line.contrato_activo.id)
+      }
+
       $('#table_workers tbody').on('click','tr',function(){
         let line = table_workers.row(this).data()
         table_workers.$('tr.selected').removeClass('selected');
@@ -405,7 +410,24 @@
         $('#form-workers .dropdown').dropdown("clear")
 
         $('div.not-modify, div.field>input.not-modify, div.input:has(input.not-modify)').addClass('disabled').addClass('read-only')
+        const contractAvailable = hasContract(line)
         
+        if (!contractAvailable) {
+          $('#div_retiro').hide()
+          $('#btn-modify-worker').hide()
+          $('#btn-new-contract').hide()
+          $('#table-auxilios tbody').empty()
+          $.toast({
+            displayTime: 'auto',
+            showProgress: 'top',
+            class: 'warning',
+            classProgress: 'warning',
+            message: 'Este empleado no tiene información contractual disponible para mostrar.'
+          })
+          $('#modal-worker').modal('show')
+          return
+        }
+
         if (line.activo == 'True'){
           $('#btn-modify-worker').show()
           $('#div_retiro').hide()
@@ -586,7 +608,7 @@
           let line = table_workers.row('tr.selected').data()
 
           
-          if (line.activo == 'True') {
+          if (line.activo == 'True' && hasContract(line)) {
             $('#retirar').removeClass('disabled')
             $('#descargos').removeClass('disabled')
             $('#cambiar-contrato').html(`
@@ -639,6 +661,16 @@
           let line = table_workers.row($('tr.selected')).data()
           switch(e.target.id){
               case "cambiar-contrato":
+                if (!hasContract(line) && line.activo == 'True'){
+                  $.toast({
+                    displayTime: 'auto',
+                    showProgress: 'top',
+                    class: 'warning',
+                    classProgress: 'warning',
+                    message: 'Este empleado no tiene un contrato activo disponible para modificar.'
+                  })
+                  break;
+                }
                 $('#div_afiliaciones').hide()
                 $('#div_infopersonal').hide()
                 $('div.accordion .personalinfo').hide()
@@ -1004,7 +1036,7 @@
       })
       $('#id_salario_base').focusout(function(){
         let line = table_workers.row($('tr.selected')).data()
-        if (line == undefined){return false}
+        if (line == undefined || !hasContract(line)){return false}
         let salario = $(this).val().replace(/[\$,]/g, '') * 1
         let salario_previo = line.contrato_activo.salario_base
 
