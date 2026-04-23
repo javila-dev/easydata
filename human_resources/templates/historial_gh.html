@@ -1,0 +1,86 @@
+{%extends 'base.html'%}{%load static%}{%load crispy_forms_tags%}
+{%block submenu%}
+<a class="item" href="/humanresources/landing/">
+  <i class="home icon"></i>
+</a>
+<a class="item" href="/humanresources/workers">Detalle personal</a>
+<a class="item" href="/humanresources/transitions">Empalmes</a>
+<a class="item" href="/humanresources/parameters">Parametros</a>
+<a class="item active" href="/humanresources/historial">Historial</a>
+{%endblock%}
+{%block content%}
+<div class="ui basic segment" style="padding:10px;max-height: 90vh;">
+  <div class="ui scrolling container" style="max-height: 40em!important;">
+    <table class="ui head stuck unstackable selectable compact table" id="table-historic"
+      style="width:90%; max-height: 90vh;">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Usuario</th>
+          <th>Accion</th>
+        </tr>
+      </thead>
+      <tbody>
+        {%for accion in acciones%}
+        <tr>
+          <td>{{ accion.fecha|date:"j M Y H:i" }}</td>
+          <td>{{ accion.usuario.get_full_name }}</td>
+          <td>{{ accion.texto }}</td>
+        </tr>
+        {%endfor%}
+      </tbody>
+    </table>
+
+</div>
+{%endblock%}
+{%block script%}
+<script src="{%static 'js/utils.js'%}"></script>
+<script src="{%static 'js/jquery.mask.js'%}"></script>
+<script src="{%static 'js/hrnotifications.js'%}"></script>
+
+<script src="https://cdn.datatables.net/2.1.6/js/dataTables.js"></script>
+<script src="https://cdn.datatables.net/2.1.6/js/dataTables.semanticui.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/dataTables.buttons.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.dataTables.js"></script>
+<script src="https://cdn.datatables.net/datetime/1.5.3/js/dataTables.dateTime.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.2/moment.min.js"></script>
+<script src="https://cdn.datatables.net/plug-ins/1.13.6/sorting/datetime-moment.js"></script>
+
+
+<script>
+    $(document).ready(function() {
+      DataTable.datetime('D MMM YYYY HH:mm');
+
+      var tabla = new DataTable('#table-historic', {
+        lengthMenu: [
+            [25, 50, 75, -1],
+            [25, 50, 75, 'All'],
+        ],
+        ordering:false,
+      })
+    });
+</script>
+{%endblock%}
+{%block style%}
+<link rel="stylesheet" href="https://cdn.datatables.net/2.1.6/css/dataTables.semanticui.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.1.2/css/buttons.dataTables.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/datetime/1.5.3/css/dataTables.dateTime.min.css">
+<link rel="stylesheet" href="{%static 'css/hrnotifications.css'%}">
+<style>
+  th {
+    text-align:center!important;
+  }
+  td {
+    font-size: x-small;
+  }
+  tbody{
+    cursor: pointer;
+  }
+  table{
+    width: 100%;
+  }
+  .text-center {
+    text-align: center!important;
+  }
+</style>
+{%endblock%}

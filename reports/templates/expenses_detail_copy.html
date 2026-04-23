@@ -1,0 +1,1394 @@
+{%extends 'base.html'%}{%load static%}
+{%block content%}
+<div class="ui segment" style="padding-top: 0px;padding-left: 0px;padding-bottom: 0px;padding-right: 0px;margin-bottom: 0px;
+  border-bottom-width: 0px;border-left-width: 0px;border-top-width: 0px;border-right-width: 0px;">
+  <div class="ui top attached tabular menu">
+    <a class="item active" data-tab="first">Gastos</a>
+    <a class="item" data-tab="second">Rolling</a>
+    <a class="item" data-tab="third">Clasificaciones</a>
+    <a class="item" data-tab="four">Reglas</a>
+  </div>
+  <div class="ui bottom attached tab segment active" data-tab="first">
+    
+      <div class="ui form">
+        <div class="fields">
+          <div class="five wide field">
+            <label>Fecha desde</label>
+            <div class="ui inverted calendar" id="id_date_from">
+              <div class="ui input left icon">
+                <i class="calendar icon"></i>
+                <input type="text" name="date_from" placeholder="Desde" required 
+                  readonly style="cursor: pointer;">
+              </div>
+            </div>
+          </div>
+          <div class="five wide field">
+            <label>Fecha hasta</label>
+            <div class="ui inverted calendar" id="id_date_to">
+              <div class="ui input left icon">
+                <i class="calendar icon"></i>
+                <input type="text" name="date_to" placeholder="Hasta" required 
+                  readonly style="cursor: pointer;">
+              </div>
+            </div>
+          </div>
+          <div class="three wide field">
+            <button class="circular ui icon blue inverted button" id="btn-search-expenses-by-date" style="margin-top: 1.5rem;;">
+              <i class="icon search"></i>
+            </button>
+            <button class="circular ui icon blue inverted button" id="btn-fy-expenses" style="margin-top: 1.5rem;;">
+              <i class="cloud upload alternate icon"></i>
+            </button>
+            <button class="circular ui icon blue inverted button" id="btn-modal-reclassify" style="margin-top: 1.5rem;;">
+              <i class="exchange alternate icon"></i>
+            </button>
+          </div>          
+        </div>       
+      </div>
+      <div class="ui basic segment" style="overflow-x:auto ;">
+      <table class="ui table display" id="table-expenses" style="width: 100%;">
+        <thead>
+            <tr>
+                <th>Cuenta</th>
+                <th>Fecha</th>
+                <th>Nit</th>
+                <th>Nombre</th>
+                <th>Ceco/Orden</th>
+                <th>Centro</th>
+                <th>Clasif</th>
+                <th>Importe</th>
+            </tr>
+        </thead>
+        <tfoot>
+          <tr>
+            <th>Cuenta</th>
+            <th>Fecha</th>
+            <th>Nit</th>
+            <th>Nombre</th>
+            <th>Ceco/Orden</th>
+            <th>Centro</th>
+            <th>Clasif</th>
+            <th style="font-size: x-small;">Importe</th>
+          </tr>
+        </tfoot>
+      </table>
+      </div>
+    
+    
+  </div>
+  <div class="ui bottom attached tab segment" data-tab="second">
+    <div class="ui basic segment">
+      <div class="ui form">
+        <div class="fields">
+          <div class="four wide field">
+            <label>Mes</label>
+            <select name="month-search-rolling" id="id-month-search-rolling" class="ui dropdown">
+              <option value="">Selecciona...</option>
+              <option value="1">Enero</option>
+              <option value="2">Febrero</option>
+              <option value="3">Marzo</option>
+              <option value="4">Abril</option>
+              <option value="5">Mayo</option>
+              <option value="6">Junio</option>
+              <option value="7">Julio</option>
+              <option value="8">Agosto</option>
+              <option value="9">Septiembre</option>
+              <option value="10">Octubre</option>
+              <option value="11">Noviembre</option>
+              <option value="12">Diciembre</option>
+            </select>
+          </div>
+          <div class="three wide field">
+            <label>Año</label>
+            <input type="number" min="2010" max="2999" name="year-search-rolling" id="id-year-search-rolling" class="text-center">
+          </div>
+          <div class="two wide field">
+          <button class="circular ui icon blue inverted button" id="btn-search-rolling-by-date" style="margin-top: 1.5rem;;">
+            <i class="icon search"></i>
+          </button>
+          <button class="circular ui icon blue inverted button" id="btn-upload-rolling" style="margin-top: 1.5rem;;">
+            <i class="cloud upload alternate icon"></i>
+          </button>
+          <button class="circular ui icon blue inverted button" id="btn-close-rolling" 
+          data-tooltip="Igualar rolling a gasto del mes" style="margin-top: 1.5rem;;">
+            <i class="lock icon"></i>
+          </button>
+          </div>          
+        </div>       
+      </div>
+      <table class="ui table display" id="table-rolling" style="width: 100%;">
+        <thead>
+            <tr>
+              <th>Id</th>
+              <th>Tipo</th>
+              <th>Real/Ppto</th>
+              <th>Responsable</th>
+              <th>Cuenta</th>
+              <th>Ceco/Orden</th>
+              <th>Nit</th>
+              <th>Tercero</th>
+              <th>Valor</th>
+              <th>Real</th>
+            </tr>
+        </thead>
+        <tfoot>
+          <tr>
+              <th>Id</th>
+              <th>Tipo</th>
+              <th>Real/Ppto</th>
+              <th>Responsable</th>
+              <th>Cuenta</th>
+              <th>Ceco/Orden</th>
+              <th>Nit</th>
+              <th>Tercero</th>
+              <th>Valor</th>
+              <th>Real</th>
+          </tr>
+        </tfoot>
+    </table>
+    </div>
+  </div>
+  <div class="ui bottom attached tab segment" data-tab="third">
+    <div class="ui basic segment" style="overflow-x:auto ;">
+      <button class="ui green button" id="btn-new-classify" style="margin-bottom: 1rem;">
+        Nueva clasificacion
+      </button>
+      <table class="ui table display" id="table-clasif" style="width: 100%;">
+      <thead>
+            <tr>
+              <th>Id</th>
+              <th>Tipo</th>
+              <th>Real/Ppto</th>
+              <th>Responsable</th>
+              <th>Cuenta</th>
+              <th>Ceco/Orden</th>
+              <th>Nit</th>
+              <th>Tercero</th>
+            </tr>
+      </thead>
+      <tfoot>
+          <tr>
+              <th>Id</th>
+              <th>Tipo</th>
+              <th>Real/Ppto</th>
+              <th>Responsable</th>
+              <th>Cuenta</th>
+              <th>Ceco/Orden</th>
+              <th>Nit</th>
+              <th>Tercero</th>
+          </tr>
+    </tfoot>
+      </table>
+    </div>
+  </div>
+  <div class="ui bottom attached tab segment" data-tab="four">
+    <div class="ui raised segment">
+      <form class="ui form" method="POST" id="form-rules">{%csrf_token%}
+      <span>
+        <div id="rules-div">
+          <div class="if-div">
+            <button type="button" class="ui tertiary button" onclick="remove_rule(this)"><i class="remove icon"></i></button>
+                Si &nbsp;
+                <select class="ui dropdown" name="rule-if-field" required>
+                  <option value="">Selecciona...</option>
+                  {%for field in gastos_campos%}
+                  <option value="{{field.name}}">{{field.verbose_name}}</option>
+                  {%endfor%}
+                </select>
+                <select class="ui inline dropdown" name="rule-condition" required>
+                  <option value="==">es igual a</option>
+                  <option value="!=">es diferente de</option>
+                  <option value="in">contiene</option>
+                </select>
+               <!--  &nbsp;es igual a&nbsp; -->
+              <div class="ui input">
+                <input type="text" class="text-center" name ='rule-if-value' placeholder="Valor" required>
+              </div>
+              <div class="ui transparent disabled input">
+                <input type="text" class="text-center" id="id-and-or-rule" name="and-or-rule" placeholder="and/or">
+              </div>
+          </div>
+        </div><br>
+        <div class="ui buttons">
+          <button type="button" class="ui teal button" id="btn-add-and-rule">Y</button>
+          <div class="or" data-text="+"></div>
+          <button class="ui button" type="button" id="btn-add-or-rule">O</button>
+        </div>
+      </span><br>
+      <span style="margin-top: 1rem;">
+        Entonces asigna a &nbsp;
+        <select class="ui dropdown" name="statement_field_name" required>
+          <option value="">Selecciona...</option>
+          {%for field in gastos_campos%}
+          <option value="{{field.name}}">{{field.verbose_name}}</option>
+          {%endfor%}
+        </select>      
+      el valor &nbsp;
+      <div class="ui input">
+        <input type="text" placeholder="Valor" name="statement_field_value">
+      </div>
+      <button type="submit" class="ui button green" id="btn-add-rule">
+          Agregar
+      </button>
+    </span>
+    </form>
+    </div>
+    <div class="table-responsive">
+      <table id="table-rules" class="ui table" style="width: 100%;">
+        <thead>
+          <tr>
+            <th>Id</th>
+            <th style="width:55%">Regla</th>
+            <th style="width:35%">Aplicar</th>
+            <th style="width:5%">Estado</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="ui right flyout" id="fy-exp-detail">
+  <i class="close icon"></i>
+  <div class="ui header">
+    <i class="info circle icon"></i>
+    <div class="content title">
+      Detalle de gasto linea id 
+    </div>
+  </div>
+  <div class="content corp">
+    <div class="ui text container" style="width: 100%;">
+    </div>
+    <div class="ui form" style="margin-top: 1rem;">
+      <div class="field">
+        <label>Clasificacion</label>
+        <div class="ui search selection remote dropdown">
+          <input type="hidden" required name="expense-detail-classify" id="id-expense-detail-classify">
+          <i class="dropdown icon"></i>
+          <div class="default text">Selecciona...</div>
+          <div class="scrollhint menu">
+          </div>
+        </div>
+        <!-- <select class="ui search dropdown" required name="expense-detail-classify" id="id-expense-detail-classify">
+        </select> -->
+      </div>        
+    </div>
+  </div>
+  <div class="actions">
+    <div class="ui red cancel button">
+      <i class="remove icon"></i>
+      Cerrar
+    </div>
+    <div class="ui green ok button">
+      <i class="random icon"></i>
+      Reclasificar
+    </div>
+  </div>
+</div>
+<div class="ui right flyout" id="fy-new-classify">
+  <i class="close icon"></i>
+  <div class="ui header">
+    <i class="plus icon"></i>
+    <div class="content title">
+      Nueva clasificación
+    </div>
+  </div>
+  <div class="content corp">
+    <form class="ui form" id="form-create-classify" style="margin-top: 1rem;" method="POST">{%csrf_token%}
+      <div class="field">
+        <label>Tipo</label>
+        <select required class="ui dropdown" name="tipo_classify" id="id_tipo_classify">
+          <option value="">Selecciona...</option>
+          <option value="FIJO">Fijo</option>
+          <option value="VARIABLE">Variable</option>
+          <option value="MIXTO">Mixto</option>
+        </select>
+      </div>     
+      <div class="field">
+        <label>Real/Ppto</label>
+        <select required class="ui dropdown" name="tipo_r_p_classify" id="id_tipo_r_p_classify">
+          <option value="">Selecciona...</option>
+          <option value="REAL">Real</option>
+          <option value="PPTO">Presupuesto</option>
+        </select>
+      </div>      
+      <div class="field">
+        <label>Cuenta</label>
+        <select required class="ui search dropdown" name="cuenta_classify" id="id_cuenta_classify">
+          <option value="">Selecciona...</option>
+          {%for cuenta in cuentas%}<option value="{{cuenta.pk}}">{{cuenta}}</option>{%endfor%}
+        </select>
+      </div>    
+      <div class="field">
+        <label>Centro de costo/Orden</label>
+        <select required class="ui search dropdown" name="ceco_classify" id="id_ceco_classify">
+          <option value="">Selecciona...</option>
+          {%for cedo in cedos%}<option value="{{cedo.cedo}}">{{cedo.cedo}}</option>{%endfor%}
+        </select>
+      </div>   
+      <div class="field">
+        <label>Nit Tercero</label>
+        <input type="text" class="ui input" name="nit_tercero_classify" id="id_nit_tercero_classify">
+      </div>   
+      <div class="field">
+        <label>Nombre Tercero</label>
+        <input type="text" class="ui input" name="nombre_tercero_classify" id="id_nombre_tercero_classify">
+      </div>
+      <div class="field">
+        <label>Responsable</label>
+        <select required class="ui search dropdown" name="responsable_classify" id="id_responsable_classify">
+          <option value="">Selecciona...</option>
+          {%for r in responsables%}<option value="{{r.nombre_area}}">{{r.nombre_area}}</option>{%endfor%}
+        </select>
+      </div> 
+        <div class="ui basic right aligned segment">
+          <button type="submit" class="ui green ok button">
+            <i class="check circle outline icon"></i>
+            Registrar
+          </buton>
+        </div>
+    </form>
+  </div>
+  
+</div>
+<div class="ui wide right flyout" id="fy-expenses">
+  <i class="close icon"></i>
+  <div class="ui header">
+    <div class="content">
+      Analisis de gastos y presupuesto
+    </div>
+  </div>
+  <div class="content">
+    <div class="ui segment">
+      <h5 class="ui header">
+        <i class="cloud upload alternate icon"></i>
+        <div class="content">
+          Cargar base de gastos
+        </div>
+      </h5>
+      <form method="POST" enctype="multipart/form-data" id="form-cargar-gastos">{%csrf_token%}
+          <div class="ui file input">
+              <input required type="file" name="expenses-file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />
+            </div>        
+            <div class="ui basic right aligned segment">
+              <button type="submit" class="ui green inverted button" id="btn-cargar-gastos"
+              data-tooltip="Este&nbsp;es&nbsp;el&nbsp;orden&nbsp;en&nbsp;el&nbsp;que&nbsp;deben&nbsp;
+              estar&nbsp;las&nbsp;columnas&nbsp;en&nbsp;el&nbsp;archivo&nbsp;a&nbsp;cargar:&nbsp;
+              1. Cuenta
+              2. Nit tercero
+              3. Nombre tercero
+              4. Importe
+              5. Centro costo
+              6. Orden
+              7. Fecha
+              8. Num doc
+              9. Referencia
+              10. Importe USD
+              11. Cebe
+              12. Texto
+              13. Asignacion
+              14. Posicion" data-position="left center" data-variation="multiline">
+                Cargar</button>     
+            </div>
+      </form>
+    </div>
+    <div class="ui segment">
+      <h5 class="ui header">
+        <i class="expand arrows alternate icon"></i>
+        <div class="content">
+          Clasificar gastos cargados
+        </div>
+      </h5>
+      <form id="form-classify-expenses" class="ui form" method = "POST">{%csrf_token%}
+        <div class="ui form">
+          <div class="two fields">
+            <div class="field">
+              <label>Fecha desde</label>
+              <div class="ui inverted calendar" id="id_date_from_classify">
+                <div class="ui input left icon">
+                  <i class="calendar icon"></i>
+                  <input type="text" name="date_from_classify" placeholder="Desde" required 
+                    readonly style="cursor: pointer;">
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Fecha hasta</label>
+              <div class="ui inverted calendar" id="id_date_to_classify">
+                <div class="ui input left icon">
+                  <i class="calendar icon"></i>
+                  <input type="text" name="date_to_classify" placeholder="Hasta" required 
+                    readonly style="cursor: pointer;">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="ui toggle checkbox">
+          <input type="checkbox" name="override_classified_already">
+          <label>Ignorar lineas ya clasificadas</label>
+        </div>
+        <div class="ui basic right aligned segment" style="margin-top: 0px;">
+          <button type="submit" class="ui green inverted button" id="btn-classify-expenses">
+            Clasificar</button>     
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<div class="ui wide right flyout" id="fy-rolling">
+  <i class="close icon"></i>
+  <div class="ui header">
+    <div class="content">
+      Analisis de gastos y presupuesto
+    </div>
+  </div>
+  <div class="content">
+    <div class="ui segment">
+      <h5 class="ui header">
+        <i class="cloud upload alternate icon"></i>
+        <div class="content">
+          Cargar Rolling
+        </div>
+      </h5>
+      <form method="POST" enctype="multipart/form-data" id="form-cargar-rolling" class="ui form">{%csrf_token%}
+        <div class="two fields">
+          <div class="field">
+            <label>Mes</label>
+            <select name="month-rolling" id="id-month-rolling" class="ui dropdown" required>
+              <option value="">Selecciona...</option>
+              <option value="1">Enero</option>
+              <option value="2">Febrero</option>
+              <option value="3">Marzo</option>
+              <option value="4">Abril</option>
+              <option value="5">Mayo</option>
+              <option value="6">Junio</option>
+              <option value="7">Julio</option>
+              <option value="8">Agosto</option>
+              <option value="9">Septiembre</option>
+              <option value="10">Octubre</option>
+              <option value="11">Noviembre</option>
+              <option value="12">Diciembre</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Año</label>
+            <input required type="number" min="2010" max="2999" name="year-rolling" id="id-year-rolling" class="text-center">
+          </div>
+        </div>
+          <div class="ui file input">
+              <input required type="file" name="rolling-file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" />
+            </div>   
+            <button type="button" class="ui tertiary button" id="btn-descargar-plantilla-rolling">Descargar plantilla para carga</button>
+            <div class="ui toggle checkbox" style="margin-top: 1.5rem;">
+              <input type="checkbox" name="override_uploaded_already">
+              <label>Ignorar clasificaciones ya registradas</label>
+            </div>
+            <div class="ui basic right aligned segment" style="margin-top: 0px;">
+              <button type="submit" class="ui green inverted button" id="btn-cargar-rolling">
+                Cargar</button>     
+            </div>
+            
+      </form>
+    </div>
+  </div>
+</div>
+<div class="ui modal" id="modal-rolling-detail">
+  <i class="close icon"></i>
+  <div class="header">
+    Detalle rolling clasificacion
+  </div>
+  <div class="content" style="overflow-y: auto;max-height: 70vh;">
+    <table class = "ui display table" id ="table-rolling-detail" style="width: 100%;">
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Cuenta</th>
+          <th>Nit</th>
+          <th>Tercero</th>
+          <th>Ceco/Orden</th>
+          <th>Texto</th>
+          <th>Importe</th>
+        </tr>
+      </thead>
+    </table> 
+  </div>
+</div>
+
+<div class="ui tiny modal" id="modal-reclasif-multiple">
+  <i class="close icon"></i>
+  <div class="header">
+    Cambiar clasificación en lote
+  </div>
+  <div class="content">
+    <div class="ui form" style="margin-top: 1rem;">
+      <p></p>  
+      <div class="field">
+        <label>Clasificacion</label>
+        <div class="ui search selection remote dropdown">
+          <input type="hidden" required name="reclassify-all" id="id-reclassify-all">
+          <i class="dropdown icon"></i>
+          <div class="default text">Selecciona...</div>
+          <div class="scrollhint menu">
+          </div>
+        </div>
+      </div>      
+      
+    </div>
+  </div>
+  <div class="actions">
+    <button id="btn-reclassify-all" class="ui positive right labeled icon button">
+      Reclasificar
+      <i class="exchange alternate icon"></i>
+    </button>
+  </div>
+</div>
+{%endblock%}
+<link rel="stylesheet" href="https://cdn.datatables.net/searchpanes/2.2.0/css/searchPanes.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/select/1.7.0/css/select.dataTables.min.css">
+{%block script%}
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/css/dataTables.semanticui.min.css"></script>
+<script src="https://cdn.datatables.net/searchpanes/2.2.0/js/dataTables.searchPanes.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.7.0/js/dataTables.select.min.js"></script>
+<script src="{%static 'js/utils.js'%}"></script>
+<script>
+    function remove_rule(button){
+      if ($('.if-div').length == 1) {
+          return;
+        }
+        $(button).closest('div').remove()
+        $('.if-div').last().find('#id-and-or-rule').val('')
+    }
+    $(document).ready(function() {
+      
+      $('.dropdown').dropdown({
+        clearable: true
+      })        
+      $('#btn-add-and-rule').on('click',function(val){
+        let rule = $('.if-div').last().clone(false)
+        $('.if-div').last().find('#id-and-or-rule').val('and')
+        $('#rules-div').append(rule)
+        $('.if-div').last().find('.dropdown').dropdown({
+          clearable: true
+        })
+        $('.if-div').last().find('.dropdown')
+        .dropdown('clear')
+        $('.if-div').last().find('input[name="rule-if-value"]').val('')
+      })
+      $('#btn-add-or-rule').on('click',function(val){
+        let rule = $('.if-div').last().clone(false)
+        $('.if-div').last().find('#id-and-or-rule').val('or')
+        $('#rules-div').append(rule)
+        $('.if-div').last().find('.dropdown').dropdown({
+          clearable: true
+        })
+        $('.if-div').last().find('.dropdown')
+        .dropdown('clear')
+        $('.if-div').last().find('input[name="rule-if-value"]').val('')
+      })
+      
+      $('.calendar.month').calendar({
+          type: 'month'
+        })
+      $('.ui.remote.dropdown').dropdown({
+        apiSettings: {
+          // this url just returns a list of tags (with API response expected above)
+          url: '/reports/expenses/classify?api=dropdown'
+        },
+        filterRemoteData: true
+      })
+      $('.menu .item').tab()
+      var table_rules = $('#table-rules').DataTable({
+        processing: true,
+        lengthMenu: [
+            [25, 50, 75, -1],
+            [25, 50, 75, 'All'],
+        ],
+        ajax:{
+              url:'/reports/expenses/detail?todo=getrules',
+              dataSrc: "data"
+        },
+        columns:[
+          {'data':'id'},
+          {'data':'premise'},
+          {'data':'statement',},
+          {'data':'active',},
+        ],
+      })
+      $('#table-expenses tfoot th').each(function () {
+          var title = $(this).text();
+          $(this).html('<input style="width:100%" type="text" placeholder="Search ' + title + '" />');
+      });
+      var table_expenses = $('#table-expenses').DataTable({
+        processing: true,
+        ordering: false,
+        deferRender: true,
+        serverSide: true,
+        searching:false,
+        lengthMenu: [
+            [10, 25, 50, -1],
+            [10, 25, 50, 'All'],
+        ],
+        ajax:{
+              url:'/reports/expenses/detail?todo=getexpenses&date_from=2000-01-01&date_to=2000-01-01',
+              dataSrc: "data"
+        },
+        columns:[
+          {'data':'cuenta.cuenta'},
+          {'data':'fecha'},
+          {'data':'nit_tercero',},
+          {'data':'nombre_tercero',},
+          {'data':'ceco.ceco'},
+          {'data':'ceco.cedo',},
+          {'data':'clasificacion.id'},
+          {'data':'importe',render: $.fn.dataTable.render.number( ',', '.', 0)},
+        ],
+        columnDefs: [
+            {targets:[7],className:'right aligned'},
+            {targets:[0,1,2,4,5,6],className: 'center aligned'},
+        ],
+        /* initComplete: function () {
+            // Apply the search
+            this.api()
+                .columns()
+                .every(function () {
+                    var that = this; 
+                    console.log(this)
+                    $('input', this.footer()).on('keyup change clear', function () {
+                        if (that.search() !== this.value) {
+                          console.log(that)
+                          that.search(this.value).draw();
+                        }
+                    });
+                });
+        }, */
+        footerCallback: function (row, data, start, end, display) {
+            var api = this.api();
+ 
+            // Remove the formatting to get integer data for summation
+            var intVal = function (i) {
+                return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+            };
+ 
+            // Total over all pages
+            total = api.data().context[0].json.totals
+ 
+            // Total over this page
+            pageTotal = api
+                .column(7, { page: 'current' })
+                .data()
+                .reduce(function (a, b) {
+                    return intVal(a) + intVal(b);
+                }, 0);
+              
+              
+            // Update footer
+            $(api.column(7).footer()).html('$' + new Intl.NumberFormat('en-EN').format(pageTotal)  + 
+                  ' de $' + new Intl.NumberFormat('en-EN').format(total));
+        },
+      })
+      $('#table-expenses tfoot input').on('keyup change clear', function(){
+        var query = ''
+        $('#table-expenses tfoot input').each(function(index,elem){
+          
+          let value = $(elem).val()
+          console.log(index,value)
+          if ( value != ""){
+            query += "&" + index + '=' + value
+          }
+        })
+        let date_from = $('input[name="date_from"]').val()
+        let date_to = $('input[name="date_to"]').val()
+        let url = `/reports/expenses/detail?todo=getexpenses&date_from=${date_from}&date_to=${date_to}`+query
+        console.log(url)
+        table_expenses.ajax.url(url).load()
+      })
+      $('#table-clasif tfoot th').each(function () {
+          var title = $(this).text();
+          $(this).html('<input type="text" style="width:100%" placeholder="Search ' + title + '" />');
+      });
+      var table_clasif = $('#table-clasif').DataTable({
+        processing: true,
+        deferRender: true,
+        lengthMenu: [
+            [20, 50, 75, -1],
+            [20, 50, 75, 'All'],
+        ],
+        ajax:{
+              url:'/reports/expenses/classify?api=datatable',
+              dataSrc: "data"
+        },
+        columns:[
+          {'data':'id'},
+          {'data':'tipo'},
+          {'data':'tipo_r_p',},
+          {'data':'responsable',},
+          {'data':'cuenta.cuenta'},
+          {'data':'centro_costo'},
+          {'data':'nit_tercero',},
+          {'data':'nombre_tercero'},
+        ],
+        columnDefs: [
+            {targets:[0,1,2,5,6,7],className: 'center aligned'},
+        ],
+        initComplete: function () {
+            // Apply the search
+            this.api()
+                .columns()
+                .every(function () {
+                    var that = this;
+ 
+                    $('input', this.footer()).on('keyup change clear', function () {
+                        if (that.search() !== this.value) {
+                            that.search(this.value).draw();
+                        }
+                    });
+                });
+        },
+      })
+      $('#table-rolling tfoot th').each(function () {
+          var title = $(this).text();
+          $(this).html('<input type="text" style="width:100%" placeholder="Search ' + title + '" />');
+      });
+      var table_rolling = $('#table-rolling').DataTable({
+        dom: 'Plfrtip',
+        searchPanes: {
+            columns: [3,4,5,6,7,8,9],
+            initCollapsed: true,
+            layout: 'columns-8',
+        },
+        processing: true,
+        deferRender: true,
+        lengthMenu: [
+            [20, 50, 75, -1],
+            [20, 50, 75, 'All'],
+        ],
+        ajax:{
+              url:'/reports/expenses/detail?todo=rolling&month=1&year=2020',
+              dataSrc: "data"
+        },
+        columns:[
+          {'data':'clasificacion.id'},
+          {'data':'clasificacion.tipo'},
+          {'data':'clasificacion.tipo_r_p',},
+          {'data':'clasificacion.responsable',},
+          {'data':'clasificacion.cuenta.cuenta'},
+          {'data':'clasificacion.centro_costo'},
+          {'data':'clasificacion.nit_tercero',},
+          {'data':'clasificacion.nombre_tercero'},
+          {'data':'valor',render: $.fn.dataTable.render.number( ',', '.')},
+          {'data':'real',render: $.fn.dataTable.render.number( ',', '.')},
+        ],
+        columnDefs: [
+            {targets:[0,1,2,5,6,7],className: 'center aligned'},
+            {targets:[8,9],className: 'right aligned'},
+            {
+                searchPanes: {
+                    show: true
+                },
+                targets: [3,4,5,6,7,8,9]
+            },
+            {
+                searchPanes: {
+                    show: false
+                },
+                targets: [0,1,2]
+            }
+        ],
+        initComplete: function () {
+            // Apply the search
+            this.api()
+                .columns()
+                .every(function () {
+                    var that = this; 
+                    $('input', this.footer()).on('keyup change clear', function () {
+                        if (that.search() !== this.value) {
+                            that.search(this.value).draw();
+                        }
+                    });
+                });
+        },
+        footerCallback: function (row, data, start, end, display) {
+            var api = this.api();
+ 
+            // Remove the formatting to get integer data for summation
+            var intVal = function (i) {
+                return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+            };
+ 
+            // Total over all pages
+
+            for (const i of [8,9]){
+              total = api
+                .column(i)
+                .data()
+                .reduce(function (a, b) {
+                    return intVal(a) + intVal(b);
+                }, 0);
+ 
+              // Total over this page
+              pageTotal = api
+                  .column(i, { page: 'current' })
+                  .data()
+                  .reduce(function (a, b) {
+                      return intVal(a) + intVal(b);
+                  }, 0);
+                  
+              // Update footer
+              $(api.column(i).footer()).html('$' + new Intl.NumberFormat('en-EN').format(pageTotal)  + 
+                    ' (de $' + new Intl.NumberFormat('en-EN').format(total) + ')');
+            }
+
+            
+        },
+      })
+      
+      var table_rolling_detail = $('#table-rolling-detail').DataTable({
+        scrollY:     300,
+        scroller:    true,
+        paging: false,
+        processing: true,
+        deferRender: true,
+        lengthMenu: [
+            [20, 50, 75, -1],
+            [20, 50, 75, 'All'],
+        ],
+        ajax:{
+              url:'/reports/expenses/detail?todo=getexpensesbyclassify',
+              dataSrc: "data"
+        },
+        columns:[
+          {'data':'fecha'},
+          {'data':'cuenta.cuenta'},
+          {'data':'nit_tercero',},
+          {'data':'nombre_tercero',},
+          {'data':'ceco.ceco'},
+          {'data':'texto'},
+          {'data':'importe',render: $.fn.dataTable.render.number( ',', '.', 0)},
+        ],
+        columnDefs: [
+            {targets:[0,1,2],className: 'center aligned'},
+            {targets:[6],className: 'right aligned'},
+        ],
+      })
+
+      $('#fy-new-classify').flyout({
+        keyboardShortcuts: false,
+        ordering: false,
+        dimPage: false,
+      })
+      $('#btn-new-classify').click(function(){
+        $('#fy-new-classify').flyout('show')
+      })
+      $('#fy-exp-detail').flyout({
+        keyboardShortcuts: false,
+        ordering: false,
+        dimPage: false,
+        onApprove:function(e){
+          $('#fy-exp-detail .button').addClass('loading disabled')
+          let datarow = table_expenses.row($('#table-expenses tr.selected')).data()
+            let cookie = getCookie('csrftoken')
+            let id_expense = datarow.id
+            let actual_classify = datarow.clasificacion.id
+            let new_classify = $('#id-expense-detail-classify').val()
+            if (actual_classify == new_classify){
+              $.toast({
+                showIcon: 'bullhorn icon',
+                class: 'error',
+                displayTime: 'auto',
+                closeIcon: true,
+                message: 'Debes seleccionar una clasificación diferente a la actual.'
+              })
+              return false;
+            }
+            $.ajax({
+              type: 'POST',
+              url: '/reports/expenses/detail',
+              data:{
+                'csrfmiddlewaretoken':cookie,
+                'id_expense': id_expense,
+                'new_classify':new_classify,
+                'todo':'reclasify'
+              },
+              success: (xhr) => {
+                table_expenses.ajax.reload(function(){
+                  $.toast({
+                    showIcon: 'bullhorn icon',
+                    class: 'success',
+                    displayTime: 'auto',
+                    closeIcon: true,
+                    message: '¡Terminamos! cambiamos la clasificacion a la seleccionada.'
+                  })
+                  $('#fy-exp-detail').flyout('hide')
+                  $('#fy-exp-detail .button').removeClass('loading disabled')
+                })
+                
+              },
+              error: (xhr) => {
+                $.toast({
+                    showIcon: 'bullhorn icon',
+                    class: 'error',
+                    displayTime: 'auto',
+                    closeIcon: true,
+                    message: '¡Houston tenemos un problema! Ocurrio un error inesperado, intentalo nuevamente o contactanos.'
+                  })
+                $('#fy-exp-detail .button').removeClass('loading disabled')
+                console.log(xhr.responseText)
+              }
+            })
+            return false;
+          }
+      })
+      $('#table-expenses tbody').on('click','tr', function(){
+        let datarow = table_expenses.row(this).data()
+        $('#table-expenses tbody tr').removeClass('selected')
+        $('.flyout').flyout('hide')
+        $(this).addClass('selected')
+        $('#fy-exp-detail').find('.content.title')
+                          .text(`Detalle de gasto linea id ${datarow.id}`)
+        $('#fy-exp-detail').find('.text.container')
+                          .html(`<p><strong>TEXTO:</strong> ${datarow.texto}</p>`)
+        $('.ui.remote.dropdown')
+        .dropdown('clear')
+        .dropdown('set selected',datarow.clasificacion.id)
+
+        $('#fy-exp-detail').flyout('show', {
+          keyboardShortcuts: false,
+          dimPage: false,
+        })
+      })
+      $('#table-clasif tbody').on('click','tr', function(){
+        $('#table-clasif tbody tr').removeClass('selected')
+        $(this).addClass('selected')
+        
+      })
+      $('#table-rolling tbody').on('click','tr', function(){
+        let month = $('#id-month-search-rolling').val()
+        let year = $('#id-year-search-rolling').val()
+        let data = table_rolling.row(this).data()
+        let url = `/reports/expenses/detail?todo=getexpensesbyclassify&classify=${data.clasificacion.id}&year=${year}&month=${month}`
+        table_rolling_detail.ajax.url(url).load()
+        $('#table-rolling tbody tr').removeClass('selected')
+        $(this).addClass('selected')
+        $('#modal-rolling-detail').modal('show')
+        $('#modal-rolling-detail').find('.header').html(
+          `Detalle gastos rolling clasificación ${data.clasificacion.id} mes: ${month} año: ${year}`
+        )
+        
+      })
+      $('#id_date_from').calendar({
+            type: 'date',
+            firstDayOfWeek: 1,
+            text: calendar_spanish(),
+            endCalendar: $('#id_date_to'),
+            formatter:{
+              date: 'YYYY-MM-DD',
+            }
+          });
+      $('#id_date_to').calendar({
+        type: 'date',
+        firstDayOfWeek: 1,
+        text: calendar_spanish(),
+        startCalendar: $('#id_date_from'),
+        formatter:{
+          date: 'YYYY-MM-DD',
+        }
+      });
+      $('#btn-search-expenses-by-date').click(function(){
+          let date_from = $('input[name="date_from"]').val()
+          let date_to = $('input[name="date_to"]').val()
+          if (date_from == '' || date_to == ''){
+            $.toast({
+              showIcon: 'bullhorn icon',
+              class: 'error',
+              displayTime: 'auto',
+              closeIcon: true,
+              message: 'Debes ingresar la fecha desde y hasta para continuar.'
+            })
+            return;
+          }
+           let url = `/reports/expenses/detail?todo=getexpenses&date_from=${date_from}&date_to=${date_to}`
+           $(this).addClass('loading disabled')
+           table_expenses.ajax.url(url).load(function(data){
+            $('#btn-search-expenses-by-date').removeClass('loading disabled')
+           })
+        })
+      $('#id_date_from_classify').calendar({
+            type: 'date',
+            firstDayOfWeek: 1,
+            text: calendar_spanish(),
+            endCalendar: $('#id_date_to_classify'),
+            formatter:{
+              date: 'YYYY-MM-DD',
+            }
+          });
+      $('#id_date_to_classify').calendar({
+        type: 'date',
+        firstDayOfWeek: 1,
+        text: calendar_spanish(),
+        startCalendar: $('#id_date_from_classify'),
+        formatter:{
+          date: 'YYYY-MM-DD',
+        }
+      });
+      $('#fy-expenses').flyout({
+            keyboardShortcuts: false,
+            dimPage: false,
+          })
+      $('#btn-fy-expenses').click(function(){
+            $('#fy-expenses').flyout('show', {
+              keyboardShortcuts: false,
+              dimPage: false,
+            })
+        })
+      $('#btn-upload-rolling').click(function(){
+            $('#fy-rolling').flyout('show', {
+              keyboardShortcuts: false,
+              dimPage: false,
+            })
+        })
+        $('#btn-close-rolling').click(function(){
+          let month = $('#id-month-search-rolling').val()
+          let year = $('#id-year-search-rolling').val()
+          
+          if (month=="" || year ==""){
+            $.toast({
+                showIcon: 'bullhorn icon',
+                class: 'error',
+                displayTime: 'auto',
+                closeIcon: true,
+                message: 'Debes seleccionar un periodo a igualar.'
+              }) 
+          }
+
+          $.modal({
+              title: 'Confirmar',
+              class: 'mini',
+              closeIcon: true,
+              content: '¿Estás segur@ que deseas cerrar este periodo de rolling?',
+              actions: [{
+                text: 'Si',
+                class: 'ok green'
+              },
+              {
+                text: 'No',
+                class: 'red'
+              }],
+              onApprove: function(xhr){
+                $('.modal').find('button.ok.green').addClass('disabled loading')
+                $.ajax({
+                  url:window.location,
+                  type:'POST',
+                  data:{
+                    'csrfmiddlewaretoken':getCookie('csrftoken'),
+                    'month':month,
+                    'year':year,
+                    'todo':'close-rolling'
+                  },
+                  success: function(xhr){
+                    $.toast({
+                      showIcon: 'bullhorn icon',
+                      class: 'success',
+                      displayTime: 'auto',
+                      closeIcon: true,
+                      message: 'Se igualaron los valores de gasto a rolling para el periodo seleccionado.'
+                    })  
+                    table_rolling.ajax.reload()
+                  },
+                  complete: function(xhr){
+                    $('.modal').find('button.ok.green').removeClass('disabled loading')
+                  }
+                })
+              }
+          }).modal('show');
+        })
+      $('#btn-search-rolling-by-date').click(function(){
+          let month = $('#id-month-search-rolling').val()
+          let year = $('#id-year-search-rolling').val()
+          let url = `/reports/expenses/detail?todo=rolling&month=${month}&year=${year}`
+
+          if ($('#id-month-search-rolling').val() == "" || $('#id-year-search-rolling').val() == ""){
+            $.toast({
+                showIcon: 'bullhorn icon',
+                class: 'error',
+                displayTime: 'auto',
+                closeIcon: true,
+                message: 'Ups! No escoge un mes y año antes de hacer click en buscar :)'
+              })  
+          }
+
+          $(this).addClass('disabled loading')
+          table_rolling.ajax.url(url).load(function(){
+            $('#btn-search-rolling-by-date').removeClass('disabled loading')
+          })
+      })
+      $('#form-create-classify').submit(function(e){
+        if ($('#id_cuenta_classify').val()==""){
+          $.toast({
+            showIcon: 'bullhorn icon',
+            class: 'error',
+            displayTime: 'auto',
+            closeIcon: true,
+            message: 'Debes seleccionar una cuenta'
+          })
+          
+          return false;
+        }
+        if ($('#id_responsable_classify').val()==""){
+          $.toast({
+            showIcon: 'bullhorn icon',
+            class: 'error',
+            displayTime: 'auto',
+            closeIcon: true,
+            message: 'Debes seleccionar un responsable'
+          })     
+          return false;     
+        }
+      
+        e.preventDefault();
+        $(this).addClass('loading')
+        let data = new FormData(this)
+        data.append('todo','create_classify')
+        $.ajax({
+          url:'/reports/expenses/classify',
+          type:'POST',
+          data:data,
+          processData: false,
+          contentType: false,
+          success: (xhr) => {
+            if (xhr.class == 'error') {
+              $.toast({
+                showIcon: 'bullhorn icon',
+                class: xhr.class,
+                displayTime: 'auto',
+                closeIcon: true,
+                message: xhr.msj
+              }) 
+            }
+            else {
+              table_clasif.ajax.reload(function(){
+                $('#form-create-classify').trigger('reset')
+                $('#form-create-classify .dropdown').dropdown('clear')
+                $('#fy-new-classify').flyout('hide')
+                $.toast({
+                  showIcon: 'bullhorn icon',
+                  class: xhr.class,
+                  displayTime: 'auto',
+                  closeIcon: true,
+                  message: xhr.msj
+                })   
+              })
+            }
+          },
+          error: (xhr) => {
+            console.log(xhr.responseJSON)
+          },
+          complete: (xhr) => {
+            $('#form-create-classify').removeClass('loading')
+          }
+        })
+
+      })
+      $('#form-cargar-gastos').submit(function(e){
+            $(this).addClass('blue double loading')
+            $.toast({
+              showIcon: 'bullhorn icon',
+              class: 'info',
+              displayTime: 0,
+              closeIcon: true,
+              message: 'Estamos cargando la información, esto puede tardar un poco.'
+            })
+            ;
+        })
+      $('#form-cargar-rolling').submit(function(e){
+            $(this).addClass('blue double loading')
+            $.toast({
+              showIcon: 'bullhorn icon',
+              class: 'info',
+              displayTime: 0,
+              closeIcon: true,
+              message: 'Estamos cargando la información, esto puede tardar un poco.'
+            })
+            ;
+        })
+      $('#form-classify-expenses').submit(function(e){
+          e.preventDefault();
+          let date1 = $('#id_date_from_classify').calendar('get date')
+          let date2 = $('#id_date_to_classify').calendar('get date')
+          if (date1 == null || date2== null ){
+            $.toast({
+              showIcon: 'bullhorn icon',
+              class: 'error',
+              displayTime: 'auto',
+              closeIcon: true,
+              message: 'Debes ingresar la fecha desde y hasta para continuar.'
+            })
+            return;
+          }
+          $(this).addClass('blue double loading')
+          $.toast({
+              showIcon: 'bullhorn icon',
+              class: 'info',
+              displayTime: 'auto',
+              closeIcon: true,
+              message: 'Estamos clasificando gastos, esto puede tardar un poco.'
+            })
+            let data = new FormData(this)
+            data.append('todo','classify')
+            $.ajax({
+              type: 'POST',
+              url: '/reports/expenses/',
+              data: data,
+              contentType: false,
+              processData: false,
+              success: (xhr) => {
+                $.toast({
+                  showIcon: 'bullhorn icon',
+                  class: 'success',
+                  displayTime: 0,
+                  closeIcon: true,
+                  message: `¡Terminamos! <a href="${xhr.url}"><b>aqui</b></a> puedes ver un reporte  de lo que hicimos, y de lo que no hicimos tambien :(`
+                })
+              },
+              error: (xhr) => {
+                $.toast({
+                  showIcon: 'bullhorn icon',
+                  class: 'error',
+                  displayTime: 'auto',
+                  closeIcon: true,
+                  message: `Houston tenemos un problema :(, por favor avisale al admin que fallamos`
+                })
+              },
+              complete: (xhr) => {
+                $('#form-classify-expenses').removeClass('blue double loading')                
+              }
+            })
+        })
+      $('#form-rules').submit(function(e){
+        let rule = $('.if-div').last().clone(false)
+        let incomplete = true
+        e.preventDefault();
+        $('#form-rules select').each(function(index,element){
+          if($(element).val() == '') incomplete = false              
+        })
+        if (incomplete == false) {
+          $.toast({
+              showIcon: 'bullhorn icon',
+              class: 'error',
+              displayTime: 'auto',
+              closeIcon: true,
+              message: 'Houston tenemos un problema, debes diligenciar todos los campos para crear una regla'
+            })
+            return false;
+        }
+        $(this).addClass('loading');
+        let data = new FormData(this)
+        data.append('todo','add-rule')
+        $.ajax({
+          type:'POST',
+          data:data,
+          url: window.location,
+          contentType: false,
+          processData: false,
+          success: (xhr) => {
+            $.toast({
+              showIcon: 'bullhorn icon',
+              class: 'success',
+              displayTime: 'auto',
+              closeIcon: true,
+              message: 'Creamos la regla que nos enviaste y ya está lista para ser aplicada :)'
+            })
+            table_rules.ajax.reload();
+            $('#rules-div').empty().append(rule)
+            $('#form-rules').find('.dropdown')
+            .dropdown('clear')
+            $('#form-rules').find('input').val('')
+          },
+          complete: (xhr) => {
+            $('#form-rules').removeClass('loading');
+          }
+
+        })
+      })
+      $('#btn-descargar-plantilla-rolling').click(function(){
+        $(this).addClass('loading');
+        $.ajax({
+          url: window.loction,
+          type: 'GET',
+          data: {
+            'todo':'getrollingfile'
+          },
+          success: function(xhr){
+            $.toast({
+              showIcon: 'bullhorn icon',
+              class: 'success',
+              position: 'top left',
+              displayTime: 0,
+              message: `Puedes descargar el archivo <a href="${xhr.url}">Aqui</a>` 
+            })
+          },
+          complete: function(){
+            $('#btn-descargar-plantilla-rolling').removeClass('loading')
+          }
+        })
+      })
+      $('#btn-modal-reclassify').click(function(){
+        $('#modal-reclasif-multiple').find('p')
+          .html('Vas a reclasificar '+table_expenses.data().length + ' lineas.  Ingresa la nueva clasificación:')
+        $('#modal-reclasif-multiple').modal('show');
+      })
+      $('#btn-reclassify-all').click(function(){
+        let btn = this
+        $(btn).addClass('disabled loading')
+        let data = table_expenses.data()
+        let new_classify = $('#id-reclassify-all').val()
+
+        classify_list = []
+        data.map(function(x){
+          classify_list.push(x.id)
+        })
+        
+        $.ajax({
+          type:'POST',
+          url:window.location,
+          data:{
+            'new_classify':new_classify,
+            'classify_list':classify_list,
+            'todo':'reclasify-multiple',
+            'csrfmiddlewaretoken': getCookie('csrftoken')
+          },
+          success:function(xhr){
+            table_expenses.ajax.reload()
+            $('#modal-reclasif-multiple').modal('hide');
+          },
+          complete:function(){
+            $(btn).removeClass('disabled loading')
+          }
+        })
+      })
+    })
+</script>
+{%endblock%}
+{%block style%}
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.semanticui.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/searchpanes/2.2.0/css/searchPanes.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/select/1.7.0/css/select.dataTables.min.css">
+<style>
+  th {
+    text-align:center!important;
+  }
+  td {
+    font-size: x-small;
+  }
+  tbody{
+    cursor: pointer;
+  }
+  table{
+    width: 100%;
+  }
+  .text-center {
+    text-align: center;
+  }
+</style>
+{%endblock%}

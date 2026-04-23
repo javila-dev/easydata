@@ -1,0 +1,20 @@
+services:
+  web:
+    build: .
+    env_file:
+      - .env
+    environment:
+      DB_HOST: central-postgres
+      DB_PORT: 5432
+      PRODUCTION: "True"
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    networks:
+      - shared-services
+      - default
+
+networks:
+  shared-services:
+    external: true

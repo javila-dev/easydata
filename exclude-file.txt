@@ -1,0 +1,9 @@
+.git
+data
+static
+static_media
+exclude-file.txt
+docker-compose.yml
+dockerfile
+.vscode
+__pycache__

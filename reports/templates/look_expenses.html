@@ -1,0 +1,175 @@
+{%extends 'base.html'%}{%load static%}
+{%block submenu%}
+    <a class="item active">Analizar</a>
+    <a class="item" href="/reports/expenses/detail">Gastos</a>
+{%endblock%}
+{%block content%}
+
+<div class="ui container" style="width:100%;overflow-x: auto;">
+  <div class="ui center aligned segment">
+    <h3>Gastos desde el {{from}} hasta {{to}}</h3>
+  </div>
+  <div id="dataGridContainer"></div>
+  <div id="drill-popup"></div>
+    </div>
+  </div>
+{%endblock%}
+{%block script%}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.13.2/jquery-ui.min.js" integrity="sha512-57oZ/vW8ANMjR/KQ6Be9v/+/h6bq9/l3f0Oc7vn6qMqyhvPd1cvKBRWWpzu0QoneImqr2SkmO4MSqU+RpHom3Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.js" integrity="sha512-XgJh9jgd6gAHu9PcRBBAp0Hda8Tg87zi09Q2639t0tQpFFQhGpeCgaiEFji36Ozijjx9agZxB0w53edOFGCQ0g==" 
+  crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.es.min.js" integrity="sha512-ezEFV7GUvz7daEgoER1HmT4xTwdU45cvKyzfN8Vjmfgvypz0fF16x7wYyHsWCr0XFe2LbWZbD1j6iejnRpiZ9w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/1.33.1/plotly-basic.min.js" integrity="sha512-PPyN+qK3r/jIXgb7V8mr+PUyli/ccMkqlClEvrshWcbSpIy9wqYpgtna3gfFUD62WMC590GuX9kC350F0PqOuQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/plotly_renderers.min.js" integrity="sha512-nGY6wbyP3gWxAjsZwsjWahe9nKLCTTyTLn1dpwuNHb9CKLjogHAMVIbbr4wNYL0dKOsWTCrlpx9RDY+bB1MFrQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="{%static 'js/utils.js'%}"></script> -->
+<link rel="stylesheet" href="https://cdn3.devexpress.com/jslib/23.1.4/css/dx.light.css"> 
+<!-- DevExtreme library -->
+<script type="text/javascript" src="https://cdn3.devexpress.com/jslib/23.1.4/js/dx.all.js"></script>
+<script src="https://unpkg.com/devextreme-aspnet-data@2.9.2/js/dx.aspnet.data.js"></script>
+<script>
+  var date_form = '{{from}}'
+  var date_to = '{{to}}'
+</script>
+<script>
+
+  $(document).ready(function(){
+    /* var derivers = $.pivotUtilities.derivers;
+    var dateFormat = $.pivotUtilities.derivers.dateFormat;
+    var renderers = $.extend($.pivotUtilities.renderers,
+        $.pivotUtilities.plotly_renderers);
+
+    var expenses_json = $.getJSON('/reports/expenses/?todo=pivot&date_from=2023-01-01&date_to=2023-03-31',function(data){
+      $("#output").pivotUI(data.data,{
+        vals:['importe','importe_usd'],
+        renderers: renderers,
+        derivedAttributes: {
+            "month": dateFormat("fecha", "%n", true),
+            "year":   dateFormat("fecha", "%y", true)
+        },
+      },false,'es')
+    }) */
+    var url = `/reports/expenses/?todo=pivot&date_from=${date_form}&date_to=${date_to}`
+    var expenses_json = $.getJSON(url,function(data){
+      let drillDownDataSource = {};
+      const salesPopup = $('#drill-popup').dxPopup({
+        width: 900,
+        height: 600,
+        contentTemplate(contentElement) {
+          $('<div />')
+            .addClass('drill-down')
+            .dxDataGrid({
+              width: 860,
+              height: 500,
+              columns: ['fecha','cuenta__pk', 'nit_tercero',
+                        'nombre_tercero','ceco__cedo','texto',
+                      'clasificacion__pk','importe'],
+            })
+            .appendTo(contentElement);
+        },
+        onShowing() {
+          $('.drill-down')
+            .dxDataGrid('instance')
+            .option('dataSource', drillDownDataSource);
+        },
+        onShown() {
+          $('.drill-down')
+            .dxDataGrid('instance')
+            .updateDimensions();
+        },
+      }).dxPopup('instance');
+  
+      $("#dataGridContainer").dxPivotGrid({
+        dataSource: {
+            store: data.data,
+            fields: [{
+              caption: 'Responsable',
+              dataField: 'clasificacion__responsable',
+              area: "row"
+            },{
+              caption: 'Cuenta',
+              dataField: 'cuenta__pk',
+              area: "row",
+              width:250,
+              selector(data) {
+                return `${data.cuenta__pk} (${data.cuenta__nombre_cuenta})`;
+              },
+            },{
+              caption: 'CeBe/Orden',
+              dataField: 'ceco__pk',
+            },{
+              caption: 'Centro de costo',
+              dataField: 'ceco__cedo',
+            },{
+              caption: 'Clasificación',
+              dataField: 'clasificacion__pk',
+            },{
+              dataField: 'fecha',
+              dataType: 'date',
+            },{
+              dataField: 'importe',
+              area:'data',
+              summaryType: 'sum',
+              format: "currency"
+            }, {
+              dataField: 'pk',
+              visible: false,
+            }, {
+              dataField: 'cuenta__nombre_cuenta',
+              visible: false,
+            }
+        ]
+        },
+        allowSortingBySummary: true,
+        allowSorting: true,
+        allowFiltering: true,
+        allowExpandAll: true,
+        height: 700,
+        scrolling: {
+          mode: 'virtual',
+        },
+        fieldPanel: {
+              visible: true,
+              showFilterFields: true,
+        },
+        fieldChooser: {
+          allowSearch: true
+        },
+        headerFilter: {
+          search: {
+            enabled: true,
+          },
+          showRelevantValues: true,
+          width: 300,
+          height: 400,
+        },
+        stateStoring: {
+          enabled: true,
+          type: 'localStorage',
+          storageKey: 'dx-widget-gallery-pivotgrid-storing',
+        },
+        onCellClick(e) {
+          if (e.area === 'data') {
+            const pivotGridDataSource = e.component.getDataSource();
+            const rowPathLength = e.cell.rowPath.length;
+            const rowPathName = e.cell.rowPath[rowPathLength - 1];
+            const popupTitle = `${rowPathName || 'Total'} Detalle`;
+
+            drillDownDataSource = pivotGridDataSource.createDrillDownDataSource(e.cell);
+            salesPopup.option('title', popupTitle);
+            salesPopup.show();
+          }
+        },
+    });
+
+    
+  })
+  })
+</script>
+{%endblock%}
+{%block style%}
+<style>
+  td{
+    cursor: pointer;
+  }
+</style>
+{%endblock%}

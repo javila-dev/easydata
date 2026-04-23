@@ -1,0 +1,755 @@
+{%extends 'base.html'%}{%load static%}{%load crispy_forms_tags%}
+{%block submenu%}
+    <a class="item" href="/humanresources/landing/">
+      <i class="home icon"></i>
+    </a>
+    <a class="item" href="/humanresources/workers">Detalle personal</a>
+    <a class="item" href="/humanresources/transitions">Empalmes</a>
+    <a class="item active" href="/humanresources/parameters">Parametros</a>
+    <a class="item" href="/humanresources/historial">Historial</a>
+{%endblock%}
+{%block content%}
+<div class="ui grid" style="padding:0;max-height: 93vh;overflow-y: auto;">
+    <div class="three wide column" style="max-height: 100%;">
+        <div class="ui raised cards">
+            <a class="ui primary centered item card" href="#" style="text-align: center;width:200px;" data-tab="estructura-ideal">
+                <div class="image">
+                    <lord-icon
+                        src="https://cdn.lordicon.com/tlxagvyb.json"
+                        trigger="hover"
+                        colors="primary:#4bb3fd,secondary:#ffc738,tertiary:#e8b730,quaternary:#848484"
+                        style="width:100px;height:100px">
+                    </lord-icon>
+                </div>
+                <div class="content">
+                   <strong>Estructura ideal</strong>
+                </div>
+              </a>
+              <a class="ui centered item card" href="#" style="text-align: center;width:200px;" data-tab="cargos">
+                <div class="image">
+                    <lord-icon
+                        src="https://cdn.lordicon.com/ibanawal.json"
+                        trigger="hover"
+                        colors="primary:#b26836,secondary:#ffc738,tertiary:#3a3347,quaternary:#4bb3fd,quinary:#242424"
+                        style="width:100px;height:100px">
+                    </lord-icon>
+                </div>
+                <div class="content">
+                   <strong>Cargos</strong>
+                </div>
+              </a>
+              <a class="ui centered item card" href="#" style="text-align: center;width:200px;" data-tab="areas">
+                <div class="image">
+                    <lord-icon
+                        src="https://cdn.lordicon.com/prgqueup.json"
+                        trigger="hover"
+                        colors="primary:#848484,secondary:#4bb3fd,tertiary:#ffc738"
+                        style="width:100px;height:100px">
+                    </lord-icon>
+                </div>
+                <div class="content">
+                   <strong>Areas</strong>
+                </div>
+              </a>
+        </div>
+    </div>
+    <div class="thirteen wide column" style="max-height: 100%;">
+        <div class="ui raised tab segment" data-tab="estructura-ideal">
+            <div class="ui form">
+                <div class="equialy divided fields">
+                    <div class="three wide field"></div>
+                    <div class="five wide field">
+                        <div class="ui labeled fluid input">
+                            <div class="ui label">Gerencia</div>
+                            <select class="ui fluid selection dropdown" id="id_estructuras_EI">
+                                <option value="">Selecciona...</option>
+                                {%for estructura in estructuras%}
+                                <option value="{{estructura.pk}}">{{estructura.descripcion}}</option>
+                                {%endfor%}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="five wide field">
+                        <div class="ui labeled fluid input">
+                            <div class="ui label">Area</div>
+                            <select class="ui fluid selection dropdown" id="id_areas_EI">
+                                <option value="">Selecciona...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="three wide field"></div>
+                </div>
+                <div class="ui center aligned container" style="max-height: 75vh;overflow-y: auto;">
+                    <table class="ui compact selectable centered table" style="width: 80%;margin:auto auto"
+                        id="table-cargo-estruct">
+                        <thead>
+                            <tr>
+                                <th width="50%" class="text-center sticky">Cargo</th>
+                                <th class="text-center sticky">Criticidad</th>
+                                <th class="text-center sticky">Cantidad aprobada</th>
+                                <th class="text-center sticky">Cantidad actual</th>
+                                <th class="text-center sticky">Diferencia</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th width="50%" colspan="2" class="text-center">Total</th>
+                                <th class="text-center"></th>
+                                <th class="text-center"></th>
+                                <th class="text-center"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="ui raised tab segment" data-tab="cargos">
+            <div class="ui form">
+                <div class="equialy divided fields">
+                    <div class="two wide field"></div>
+                    <div class="five wide field">
+                        <div class="ui labeled fluid input">
+                            <div class="ui label">Gerencia</div>
+                            <select class="ui fluid selection dropdown" id="id_estructuras_cargos">
+                                <option value="">Selecciona...</option>
+                                {%for estructura in estructuras%}
+                                <option value="{{estructura.pk}}">{{estructura.descripcion}}</option>
+                                {%endfor%}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="five wide field">
+                        <div class="ui labeled fluid input">
+                            <div class="ui label">Area</div>
+                            <select class="ui fluid selection dropdown" id="id_areas_cargos">
+                                <option value="">Selecciona...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="two wide field">
+                        <button type="button" class="ui labeled icon green button"
+                            id="btn-add-cargos">
+                            <i class="plus icon"></i>
+                            Agregar
+                        </button>
+                    </div>
+                    <div class="two wide field"></div>
+                </div>
+                <div class="ui center aligned container" style="max-height: 75vh;overflow-y: auto;">
+                    <table class="ui compact selectable centered table" style="width: 80%;margin:auto auto" 
+                        id="table-cargos">
+                        <thead>
+                            <tr>
+                                <th width="70%" class="text-center sticky">Cargo</th>
+                                <th class="text-center sticky">Criticidad</th>
+                                <th class="text-center sticky">Cantidad actual</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th width="30%" colspan="2" class="text-center">Total</th>
+                                <th class="text-center"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="ui raised tab segment" data-tab="areas">
+            <div class="ui form">
+                <div class="equialy divided fields">
+                    <div class="four wide field"></div>
+                    <div class="six wide field">
+                        <div class="ui labeled fluid input">
+                            <div class="ui label">Gerencia</div>
+                            <select class="ui fluid selection dropdown" id="id_estructuras_areas">
+                                <option value="">Selecciona...</option>
+                                {%for estructura in estructuras%}
+                                <option value="{{estructura.pk}}">{{estructura.descripcion}}</option>
+                                {%endfor%}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="two wide field">
+                        <button type="button" class="ui labeled icon green button"
+                            id="btn-add-areas">
+                            <i class="plus icon"></i>
+                            Agregar
+                        </button>
+                    </div>
+                    <div class="four wide field"></div>
+                </div>
+                <div class="ui center aligned container" style="max-height: 75vh;overflow-y: auto;">
+                    <table class="ui compact selectable centered table" style="width: 80%;margin:auto auto" 
+                        id="table-areas">
+                        <thead>
+                            <tr>
+                                <th width="70%" class="text-center sticky">Areas</th>
+                                <th class="text-center sticky">Cantidad actual</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th width="30%" class="text-center">Total</th>
+                                <th class="text-center"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>  
+<div class="ui mini modal" id="modal-cambio-estructura">
+    <i class="close icon"></i>
+    <div class="header">
+        Actualizar parametros del cargo
+    </div>
+    <div class="content">
+        <div class="ui form">
+            <div class="field">
+                <label>Cantidad</label>
+                <select required name="criticidad_cargo" id="id_criticidad_cargo" class="ui dropdown">
+                    <option value="BAJA">BAJA</option>
+                    <option value="MEDIA">MEDIA</option>
+                    <option value="ALTA">ALTA</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Cantidad</label>
+                <input type="number" min="0" id="id-nueva-cantidad-estructura"
+                    class="text-center" name="nueva-cantidad-estructura">
+            </div>
+        </div>
+    </div>
+    <div class="actions">
+        <button class="ui approve green button">
+            Actualizar
+        </button>
+    </div>
+</div>
+<div class="ui tiny modal" id="modal-nuevo-cargo">
+    <i class="close icon"></i>
+    <div class="header">
+        Agregar nuevo cargo
+    </div>
+    <div class="content">
+        <form class="ui form" type="POST" id="form-descripcion">{%csrf_token%}
+            <div class="field">
+                <label>Descripcion</label>
+                <input type="text" id="id-descripcion-cargo" required name="descripcion-cargo">
+            </div>
+            <div class="two fields">
+                <div class="field">
+                    <label>Cantidad aprobada</label>
+                    <input type="number" required min="0" id="id-cantidad-estructura-nuevo-cargo"
+                        class="text-center" name="cantidad-estructura-nuevo-cargo">
+                </div>
+                <div class="field">
+                    <label>Criticidad</label>
+                    <select class="ui fluid selection dropdown" required id="id_criticidad_cargo"
+                        name="criticidad_cargo">
+                        <option value="">Selecciona...</option>
+                        <option value="BAJA">Baja</option>
+                        <option value="MEDIA">Media</option>
+                        <option value="ALTA">Alta</option>
+                    </select>
+                </div>
+            </div>
+            
+        </form>
+    </div>
+    <div class="actions">
+        <button class="ui approve green button">
+            Crear
+        </button>
+    </div>
+</div>
+<div class="ui tiny modal" id="modal-nuevo-area">
+    <i class="close icon"></i>
+    <div class="header">
+        Agregar area nueva
+    </div>
+    <div class="content">
+        <form class="ui form" type="POST" id="form-area-nueva">{%csrf_token%}
+            <div class="field">
+                <label>Descripcion</label>
+                <input type="text" id="id-descripcion-area" required name="descripcion-area">
+            </div>
+        </form>
+    </div>
+    <div class="actions">
+        <button class="ui approve green button">
+            Crear
+        </button>
+    </div>
+</div>
+
+{%endblock%}
+{%block script%}
+<script src="https://cdn.lordicon.com/lordicon.js"></script>
+<script src="{%static 'js/utils.js'%}"></script>
+<script src="{%static 'js/jquery.mask.js'%}"></script>
+<script src="{%static 'js/hrnotifications.js'%}"></script>
+
+<script src="https://cdn.datatables.net/2.1.6/js/dataTables.js"></script>
+<script src="https://cdn.datatables.net/2.1.6/js/dataTables.semanticui.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.2/moment.min.js"></script>
+<!-- <script src="https://cdn.datatables.net/2.1.6/js/dataTables.js"></script> -->
+<script src="https://cdn.datatables.net/searchbuilder/1.8.0/js/dataTables.searchBuilder.js"></script>
+<script src="https://cdn.datatables.net/searchbuilder/1.8.0/js/searchBuilder.dataTables.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/dataTables.buttons.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.dataTables.js"></script>
+<script src="https://cdn.datatables.net/datetime/1.5.3/js/dataTables.dateTime.min.js"></script>
+
+
+<script>
+    $(document).ready(function() {
+        $('.ui.cards .item').tab();
+        $('.ui.cards .item').click(function(){
+            $('.ui.cards .item').removeClass('primary');
+            $(this).addClass('primary');
+        })
+        $('.ui.dropdown').dropdown({
+            clearable: true,
+        })
+
+        /* Tablas */
+        DataTable.datetime('YYYY-MM-DD');
+        var tablacargosestructura = new DataTable('#table-cargo-estruct', {
+            "paging": false,
+            "searching": false,
+            processing: true,
+            "info": false,
+            "order": [[ 0, "asc" ]],
+            "ajax": {
+                url: window.location.href+'?todo=datatable-EIbyarea',
+                dataSrc: "data"
+            },
+            "columns": [
+                { "data": "descripcion" },
+                { "data": "criticidad" },
+                { "data": "cantidad_aprobada" },
+                { "data": "cantidad_actual" },
+                { "data": "diferencia" }
+            ],
+            columnDefs: [
+                {targets:[1,2,3,4],className: 'text-center'},
+            ],
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+    
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+                // Total over all pages
+                for (i=2;i<=4;i++){
+                    total = api
+                       .column(i)
+                       .data()
+                       .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+                    // Update footer
+                    $(api.column(i).footer()).html( total  );
+                }
+            },
+        })
+        var tablacargos = new DataTable('#table-cargos', {
+            "paging": false,
+            "searching": false,
+            processing: true,
+            "info": false,
+            "order": [[ 0, "asc" ]],
+            "ajax": {
+                url: window.location.href+'?todo=datatable-EIbyarea',
+                dataSrc: "data"
+            },
+            "columns": [
+                { "data": "descripcion" },
+                { "data": "criticidad" },
+                { "data": "cantidad_actual" },
+            ],
+            columnDefs: [
+                {targets:[1,2],className: 'text-center'},
+            ],
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+    
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+                // Total over all pages
+                for (i=2;i<=2;i++){
+                    total = api
+                       .column(i)
+                       .data()
+                       .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+                    // Update footer
+                    $(api.column(i).footer()).html( total  );
+                }
+            },
+        })
+        var tabla_areas = new DataTable('#table-areas', {
+            "paging": false,
+            "searching": false,
+            processing: true,
+            "info": false,
+            "order": [[ 0, "asc" ]],
+            "ajax": {
+                url: window.location.href+'?todo=datatable-areas-by-estructura',
+                dataSrc: "data"
+            },
+            "columns": [
+                { "data": "descripcion" },
+                { "data": "cantidad_actual" },
+            ],
+            columnDefs: [
+                {targets:[1],className: 'text-center'},
+            ],
+            footerCallback: function (row, data, start, end, display) {
+                var api = this.api();
+    
+                // Remove the formatting to get integer data for summation
+                var intVal = function (i) {
+                    return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+                };
+                // Total over all pages
+                for (i=1;i<=1;i++){
+                    total = api
+                       .column(i)
+                       .data()
+                       .reduce(function (a, b) {
+                            return intVal(a) + intVal(b);
+                        }, 0);
+                    // Update footer
+                    $(api.column(i).footer()).html( total  );
+                }
+            },
+        })
+        
+        $('#table-cargo-estruct tbody').on('click','tr', function(){
+            tablacargosestructura.$('tr.selected').removeClass('selected');
+            $(this).addClass('selected')
+            let rowData = tablacargosestructura.row( this ).data();
+            $('#modal-cambio-estructura').modal('show')
+            $('#id-nueva-cantidad-estructura').val(rowData.cantidad_aprobada)
+            $('#id_criticidad_cargo').dropdown('set selected',rowData.criticidad)
+        })
+        $('#table-cargos tbody').on('click','tr', function(){
+            tablacargos.$('tr.selected').removeClass('selected');
+            $(this).addClass('selected')
+            let rowData = tablacargos.row( this ).data();
+        })
+        
+        /* Modals */
+        $('#modal-cambio-estructura').modal({
+            keyboardShortcuts : false,
+            closeIcon: true,
+            onApprove: function(){
+                button = $('#modal-cambio-estructura').find('button.approve')
+                button.addClass('disabled loading')
+                cantidad = $('#id-nueva-cantidad-estructura').val()
+                criticidad = $('#id_criticidad_cargo').val()
+
+                if (cantidad < 0){
+                    $.toast({
+                        displayTime: 'auto',
+                        showProgress: 'top',
+                        class: 'error',
+                        classProgress: 'error',
+                        message: 'La cantidad no puede ser negativa'
+                    })
+                    return false
+                }
+                cargo = tablacargosestructura.row( '.selected' ).data().id
+                form = new FormData()
+                form.append('todo','update_ei')
+                form.append('csrfmiddlewaretoken', getCookie('csrftoken'))
+                form.append('cargo',cargo)
+                form.append('cantidad',cantidad)
+                form.append('criticidad',criticidad)
+                $.ajax({
+                    type:"POST",
+                    url: window.location.href,
+                    data: form,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        $.toast({
+                            displayTime: 'auto',
+                            showProgress: 'top',
+                            class:response.class,
+                            classProgress:response.class,
+                            message: response.message
+                        })
+                        tablacargosestructura.ajax.reload(function(){
+                            $('#modal-cambio-estructura').modal('hide')
+                            button.removeClass('disabled loading')
+                        })
+                    },
+                    error: function(xhr, status, error){
+                        $.toast({
+                            displayTime: 'auto',
+                            showProgress: 'top',
+                            class: 'error',
+                            classProgress: 'error',
+                            message: 'Error al actualizar la cantidad'
+                        })
+                        button.removeClass('disabled loading')
+                    }
+                })
+                return false;
+            }
+        })
+        $('#modal-nuevo-cargo').modal({
+            keyboardShortcuts : false,
+            closeIcon: true,
+            onApprove: function(){
+                let area = $('#id_areas_cargos').val()
+                button = $('#modal-nuevo-cargo').find('button.approve')
+                button.addClass('disabled loading')
+                let form = $('#form-descripcion')
+                form.addClass('loading')
+                let formdata = new FormData(form[0])
+                let error = false
+                form.find('input,select').each(function(){
+                    if ($(this).val()=='') error = true
+                })
+                if (error) {
+                    $.toast({
+                            displayTime: 'auto',
+                            showProgress: 'top',
+                            class: 'error',
+                            classProgress: 'error',
+                            message: 'Todos los campos son obligatorios'
+                        })
+                        form.removeClass('loading')
+                        button.removeClass('disabled loading')
+                        return false;
+                }
+                formdata.append('todo','add_cargo')
+                formdata.append('area',area)
+                $.ajax({
+                    type:"POST",
+                    url: window.location.href,
+                    data: formdata,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        $.toast({
+                            displayTime: 'auto',
+                            showProgress: 'top',
+                            class:response.class,
+                            classProgress:response.class,
+                            message: response.message
+                        })
+                        tablacargos.ajax.reload(function(){
+                            $('#modal-nuevo-cargo').modal('hide')
+                            form.removeClass('loading')
+                            button.removeClass('disabled loading')
+                        })
+                    },
+                    error: function(xhr, status, error){
+                        $.toast({
+                            displayTime: 'auto',
+                            showProgress: 'top',
+                            class: 'error',
+                            classProgress: 'error',
+                            message: 'Error al actualizar la cantidad'
+                        })
+                        form.removeClass('loading')
+                        button.removeClass('disabled loading')
+                    }
+                })
+                return false;
+            }
+        })
+        $('#modal-nuevo-area').modal({
+            keyboardShortcuts : false,
+            closeIcon: true,
+            onApprove: function(){
+                let estructura = $('#id_estructuras_areas').val()
+                button = $('#modal-nuevo-area').find('button.approve')
+                button.addClass('disabled loading')
+                let form = $('#form-area-nueva')
+                form.addClass('loading')
+                let formdata = new FormData(form[0])
+                formdata.append('todo','add_area')
+                formdata.append('estructura',estructura)
+                $.ajax({
+                    type:"POST",
+                    url: window.location.href,
+                    data: formdata,
+                    contentType: false,
+                    processData: false,
+                    success: function (response) {
+                        $.toast({
+                            displayTime: 'auto',
+                            showProgress: 'top',
+                            class:response.class,
+                            classProgress:response.class,
+                            message: response.message
+                        })
+                        tabla_areas.ajax.reload(function(){
+                            $('#modal-nuevo-area').modal('hide')
+                            form.removeClass('loading')
+                            button.removeClass('disabled loading')
+                        })
+                    },
+                    error: function(xhr, status, error){
+                        $.toast({
+                            displayTime: 'auto',
+                            showProgress: 'top',
+                            class: 'error',
+                            classProgress: 'error',
+                            message: 'Error al crear el area'
+                        })
+                        form.removeClass('loading')
+                        button.removeClass('disabled loading')
+                    }
+                })
+                return false;
+            }
+        })
+
+
+
+        /* Dropdowns */
+      $('#id_estructuras_EI').change(function(){
+        let estructura = $(this).val()
+        if (estructura == ''){
+          $('#id_areas_EI').parent('.ui.dropdown').dropdown({values:[]});
+            /* $('#id_cargo').parent('.ui.dropdown').dropdown({values:[]}); */
+        }
+        $.ajax({
+          type: "GET",
+          url: '/humanresources/utils/dependentlist',
+          data:{
+            todo:'areasbyestructura',
+            estructura:estructura
+          },
+          success: function(response){
+            $('#id_areas_EI').parent('.ui.dropdown').dropdown({values:response.data});
+          },
+          error: function(xhr, status, error){
+            $.toast({
+              displayTime: 'auto',
+              showProgress: 'top',
+              class: 'error',
+              classProgress: 'error',
+              message: 'Error al cargar las áreas'
+            })
+          }
+        })
+      })
+      $('#id_areas_EI').change(function(){
+        let area = $(this).val()
+
+        url = window.location.href+`?todo=datatable-EIbyarea&area=${area}`
+        tablacargosestructura.ajax.url(url).load()
+      })
+      $('#id_estructuras_cargos').change(function(){
+        let estructura = $(this).val()
+        if (estructura == ''){
+          $('#id_areas_cargos').parent('.ui.dropdown').dropdown({values:[]});
+            /* $('#id_cargo').parent('.ui.dropdown').dropdown({values:[]}); */
+        }
+        $.ajax({
+          type: "GET",
+          url: '/humanresources/utils/dependentlist',
+          data:{
+            todo:'areasbyestructura',
+            estructura:estructura
+          },
+          success: function(response){
+            $('#id_areas_cargos').parent('.ui.dropdown').dropdown({values:response.data});
+          },
+          error: function(xhr, status, error){
+            $.toast({
+              displayTime: 'auto',
+              showProgress: 'top',
+              class: 'error',
+              classProgress: 'error',
+              message: 'Error al cargar las áreas'
+            })
+          }
+        })
+      })
+      $('#id_areas_cargos').change(function(){
+        let area = $(this).val()
+
+        url = window.location.href+`?todo=datatable-EIbyarea&area=${area}`
+        tablacargos.ajax.url(url).load()
+      })
+      $('#id_estructuras_areas').change(function(){
+        let estructura = $(this).val()
+
+        url = window.location.href+`?todo=datatable-areas-by-estructura&estructura=${estructura}`
+        tabla_areas.ajax.url(url).load()
+      })
+
+      /* Buttons */
+      $('#btn-add-cargos').click(function(){
+        let area = $('#id_areas_cargos').val()
+        if (area == '') {
+            $.toast({
+                displayTime: 'auto',
+                showProgress: 'top',
+                class: 'error',
+                classProgress: 'error',
+                message: 'Debes seleccionar una área'
+            })
+            return false
+        }
+        $('#modal-nuevo-cargo').modal('show')
+      })
+      $('#btn-add-areas').click(function(){
+        let estructura = $('#id_estructuras_areas').val()
+        if (estructura == '') {
+            $.toast({
+                displayTime: 'auto',
+                showProgress: 'top',
+                class: 'error',
+                classProgress: 'error',
+                message: 'Debes seleccionar una estructura'
+            })
+            return false
+        }
+        $('#modal-nuevo-area').modal('show')
+      })
+
+    });
+</script>
+{%endblock%}
+{%block style%}
+<link rel="stylesheet" href="https://cdn.datatables.net/2.1.6/css/dataTables.semanticui.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/searchbuilder/1.8.0/css/searchBuilder.semanticui.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.1.2/css/buttons.dataTables.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/datetime/1.5.3/css/dataTables.dateTime.min.css">
+<link rel="stylesheet" href="{%static 'css/hrnotifications.css'%}">
+<style>
+/*   th {
+    text-align:center!important;
+  }
+  td {
+    font-size: x-small;
+  } */
+  tbody{
+    cursor: pointer;
+  }
+
+  .sticky{
+    position: sticky!important;
+    top:0!important;
+  }
+
+  .text-center {
+    text-align: center!important;
+  }
+</style>
+{%endblock%}

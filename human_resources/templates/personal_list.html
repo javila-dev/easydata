@@ -1,0 +1,1737 @@
+{%extends 'base.html'%}{%load static%}{%load crispy_forms_tags%}
+{%block submenu%}
+    <a class="item" href="/humanresources/landing/">
+      <i class="home icon"></i>
+    </a>
+    <a class="item active" href="/humanresources/workers">Detalle personal</a>
+    <a class="item" href="/humanresources/transitions">Empalmes</a>
+    <a class="item" href="/humanresources/parameters">Parametros</a>
+    <a class="item" href="/humanresources/historial">Historial</a>
+{%endblock%}
+{%block content%}
+<div class="ui segment" style="padding-top: 0px;padding-left: 0px;padding-bottom: 0px;padding-right: 0px;margin-bottom: 0px;
+  border-bottom-width: 0px;border-left-width: 0px;border-top-width: 0px;border-right-width: 0px;">
+  
+    <div class="ui basic segment" style="margin-top: 0;">
+      <button type="button" class="ui button teal labeled icon" id="btn-add-worker">
+        <i class="plus icon"></i> Agregar
+      </button>
+      <button type="button" class="ui button teal labeled icon" id="btn-check-workers">
+        <i class="eye outline icon"></i>Verificar base
+      </button>
+      <button type="button" class="ui button teal labeled icon" id="btn-import-workers">
+        <i class="file upload icon"></i>Carga masiva
+      </button>
+      <div class="ui toggle checkbox" id="div-include-active" style="margin-left: 1rem;">
+        <input type="checkbox" checked="checked" name="include-active" id="id-include-active">
+        <label>Personal Activo</label>
+      </div>
+      <div class="ui toggle checkbox" id="div-include-retired" style="margin-left: 1rem;">
+        <input type="checkbox" name="include-retired" id="id-include-retired">
+        <label>Personal Retirado</label>
+      </div>
+      <div class="ui long scrolling fluid container" style="margin-bottom: 2rem;max-height: 78vh;">
+        <table class="ui first head stuck selectable very compact table" id="table_workers">
+            <thead>
+                <tr>
+                    <th style="width:10%">Id</th>
+                    <th style="width:25%">Nombre</th>
+                    <th style="width:18%">Cargo</th>
+                    <th style="width:14%">Area</th>
+                    <th>Estructura</th>
+                    <th>Salario</th>
+                    <th>Tipo</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+        </table>
+      </div>
+    </div>
+</div>
+<div class="ui mini modal" id="modal-retire-worker">
+  <i class="close icon"></i>
+  <div class="header">Retirar empleado</div>
+  <div class="content">
+    {%crispy retiroForm%}  
+  </div>
+  <div class="actions">
+    <div class="ui cancel button">No</div>
+    <div class="ui approve green button">Si</div>
+  </div>
+</div>
+<div class="ui tiny modal" id="modal-check-workers">
+  <div class="header">Verificar base de personal</div>
+  <div class="content">
+    {%crispy checkworkersForm%}
+  </div>
+  <div class="actions">
+    <div class="ui cancel button">Cerrar</div>
+    <div class="ui buttons">
+      <button class="ui red button" id ="btn-remove-sheet"><i class="minus icon"></i></button>
+      <div class="or" data-text ="o"></div>
+      <button class="ui teal button" id ="btn-add-sheet"><i class="plus icon"></i></button>
+    </div>
+    <button id='btn-load-workers-file' class="ui green button">Verificar</div>
+</div>
+</div>
+<div class="ui fullscreen overlay scrolling modal" id="modal-worker">
+  <i class="close icon"></i>
+  <div class="ui header"  style="padding-top: 5px;padding-bottom: 5px;">
+    
+  </div>
+  <div class="center content" style="max-height: 70vh; padding-top:12px">
+    {%crispy workersForm%}   
+  </div>
+  <div class="center aligned actions">
+      <div class="ui negative button">Cancelar</div>
+      <div class="ui blue button" id="btn-clean-contract-data" style="display:none;">Limpiar datos</div>
+      <div class="ui approve positive button" id="btn-create-worker">Crear</div>
+      <div class="ui teal button" type="button" id="btn-modify-worker" style="display:none;">Modificar</div>
+      <div class="ui teal button" id="btn-new-contract" style="display:none;">Actualizar contrato</div>
+  </div>
+</div>
+<div class="ui modal" id="modal-historico">
+  <i class="close icon"></i>
+  <div class="centered header" style="padding-top: 8px;padding-bottom: 8px;">
+    <i class="archive circular icon"></i> Historiales
+  </div>
+  <div class="scrolling content" style="padding:0px">
+    <div class="ui segment" style="max-height: 70vh;">
+      <div class="ui secondary centered menu" style="margin-bottom: 0px;" id="historicos-tab-menu">
+        <a class="active item" data-tab="contratos-tab">Contratos</a>
+        <a class="item" data-tab="actions-tab">Acciones</a>
+      </div>
+      <div class="ui bottom attached active tab basic segment" data-tab="contratos-tab"
+        id="contratos-tab">
+        <div class="ui styled fluid accordion" id="contracts-accordion">
+        </div>
+      </div>
+      <div class="ui bottom attached tab basic segment" data-tab="actions-tab"
+        id ="actions-tab">
+        <div class="ui connected feed" id="feed-worker-actions">
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="ui mini modal" id="modal-auxilios">
+  <div class="header">
+    <span><i class="user circular tie icon"></i></span>
+    Auxilios adicionales
+  </div>
+  <div class="center content" style="overflow: auto;max-height: 70vh;">
+    {%crispy auxiliosForm%}
+  </div>
+  <div class="center aligned actions">
+      <div class="ui negative button">Cancelar</div>
+      <div class="ui positive button">Agregar</div>
+  </div>
+</div>
+<div class="ui mini modal" id="modal-cambio-contrato">
+  <div class="header">
+    <span><i class="user circular tie icon"></i></span>
+    Modificar contrato
+  </div>
+  <div class="center content">
+    <form class="ui form">
+      <div class="ui calendar field" id="fecha_cambios_contrato">
+        <label for="id_fecha_inicio_cambio">Fecha incio cambio</label>
+        <div class="ui input left icon">
+          <i class="calendar icon"></i>
+          <input type="text" name="fecha_inicio_cambio" id="id_fecha_inicio_cambio">
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="center aligned actions">
+      <div class="ui negative button">Cancelar</div>
+      <div class="ui positive button">Confirmar</div>
+  </div>
+</div>
+<div class="ui mini modal" id="modal-descargos">
+  <div class="header">
+    <span><i class="user circular tie icon"></i></span>
+    Registrar descargo
+  </div>
+  <div class="center content">
+    {%crispy descargosForms%}
+  </div>
+  <div class="center aligned actions">
+      <div class="ui negative button">Cancelar</div>
+      <div class="ui positive button">Confirmar</div>
+  </div>
+</div>
+<div class="ui tiny modal" id="modal-import-workers">
+  <div class="header">Importar personal masivo</div>
+  <div class="content">
+    {%crispy importMasiveForm%}
+    <div class="ui hidden message" id="import-workers-result"></div>
+  </div>
+  <div class="actions">
+    <div class="ui cancel button">Cerrar</div>
+    <button id='btn-import-workers-file' class="ui green button">Cargar</button>
+  </div>
+</div>
+{%endblock%}
+{%block contextmenu%}
+<div class="ui popup bottom left " id='popup-worker' style="position: absolute; 
+    padding:0px; left: 0px;top:0px;max-width: 15rem;">
+    <div class='ui basic vertical menu'>
+        <a class="item" id='cambiar-contrato'>
+            Nuevo contrato
+            <i class="print circular teal icon" style='margin-top:-7px'></i>
+          </a>
+          <a class="item" id="retirar">
+            Retirar
+            <i class="times circle outline circular teal icon" style='margin-top:-7px'></i>
+          </a>
+          <a class="item" id="descargos">
+            Descargos
+            <i class="exclamation triangle circular teal icon" style='margin-top:-7px'></i>
+          </a>
+          <a class="item" id="historiales">
+            Historicos
+            <i class="archive circular teal icon" style='margin-top:-7px'></i>
+          </a>
+          
+    </div>
+</div>
+{%endblock%}
+{%block script%}
+<script src="https://cdn.datatables.net/2.1.6/js/dataTables.js"></script>
+<script src="https://cdn.datatables.net/2.1.6/js/dataTables.semanticui.js"></script>
+<!-- <script src="https://cdn.datatables.net/2.1.6/js/dataTables.js"></script> -->
+<script src="https://cdn.datatables.net/searchbuilder/1.8.0/js/dataTables.searchBuilder.js"></script>
+<script src="https://cdn.datatables.net/searchbuilder/1.8.0/js/searchBuilder.dataTables.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/dataTables.buttons.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.dataTables.js"></script>
+<script src="https://cdn.datatables.net/datetime/1.5.3/js/dataTables.dateTime.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.print.min.js"></script>
+
+<!-- <script src="https://cdn.datatables.net/searchpanes/2.2.0/js/dataTables.searchPanes.min.js"></script> -->
+<!-- <script src="https://cdn.datatables.net/select/1.7.0/js/dataTables.select.min.js"></script> -->
+<script src="{%static 'js/utils.js'%}"></script>
+<script src="{%static 'js/jquery.mask.js'%}"></script>
+<script src="{%static 'js/hrnotifications.js'%}"></script>
+<script>
+    $(document).ready(function() {
+      
+      /* General components */
+      $('.money').mask('#,##0', {reverse: true});
+      $('.numbers').mask('#', {reverse: true});
+      $('.ui.accordion').accordion()
+      $('.ui.dropdown').dropdown({
+        clearable: true,
+        fullTextSearch: true,
+        allowAdditions: true,
+        preserveHTML: false,
+        ignoreDiacritics: true,
+        highlightMatches: true,
+      })  
+      $('.initial-hide').hide()
+      $('.ui.calendar').focusout(function(){
+        $(this).calendar('popup','hide');
+      })
+      $('.scrolling').on('scroll',function(){
+        $('.ui.calendar').each(function(){
+                $(this).calendar('popup','hide');
+              })
+      })
+      $('.ui.calendar').calendar({
+            type: 'date',
+            firstDayOfWeek: 1,
+            text: calendar_spanish(),
+            formatter:{
+                date: 'YYYY-MM-DD',
+                
+            },
+            popupOptions: {/* 
+              position: 'bottom left',
+              lastResort: 'bottom left',
+              prefer: 'opposite', */
+              hideOnScroll: true
+            },
+            context: 'body',
+            onShow: function() {
+              // Asegurarse de que el popup se oculte
+              $('.ui.calendar').each(function(){
+                $(this).calendar('popup','hide');
+              })
+            },
+        });
+      /* $('#div_id_fecha_retiro').calendar({
+            type: 'date',
+            firstDayOfWeek: 1,
+            text: calendar_spanish(),
+            formatter:{
+                date: 'YYYY-MM-DD',
+            },
+            popupOptions: {
+        moveToBody: true
+      }
+        });
+      $('#div_input_fecha_retiro').calendar({
+            type: 'date',
+            firstDayOfWeek: 1,
+            text: calendar_spanish(),
+            formatter:{
+                date: 'YYYY-MM-DD',
+            },
+            popupOptions: {
+    moveToBody: true
+  } 
+        });*/
+      $('#historicos-tab-menu .item').tab()
+      /* Datatables */  
+      var table_workers = new DataTable('#table_workers', {
+        processing: true,
+        paging: false,
+        order: [[1, 'asc']],
+        buttons: [
+                'copy', 'excel', 'pdf'
+            ],
+        layout: {
+            topStart: 'buttons',
+            top1: 'searchBuilder'
+        },
+        language: {
+            searchBuilder: {
+                add: '+',
+                condition: 'Condición',
+                clearAll: 'Reiniciar',
+                delete: 'Borrar',
+                deleteTitle: 'Borrar titulo',
+                data: 'Columna',
+                left: 'Desagrupar',
+                leftTitle: 'Desagrupar',
+                logicAnd: 'Y',
+                logicOr: 'O',
+                right: 'Agrupar',
+                rightTitle: 'Agrupar',
+                button: 'Filtros',
+                title: {
+                    0: 'Filtro',
+                    _: 'Filtros (%d)'
+                },
+                value: 'Opción',
+                valueJoiner: 'es'
+            }
+        },
+        ajax:{
+              url:'/humanresources/workers?todo=getworkers&active=true&retired=false',
+              dataSrc: "data"
+        },
+        columns:[
+          {'data':'numero_identificacion'},
+          {'data':'get_full_name'},
+          {'data':'contrato_activo.cargo.descripcion',},
+          {'data':'contrato_activo.area.descripcion'},
+          {'data':'contrato_activo.area.estructura.descripcion'},
+          {'data':'contrato_activo.salario_base',
+            render: function(data){
+              return new Intl.NumberFormat('en-EN').format(data)
+            }
+          },
+          {'data':'contrato_activo.tipo_ingreso',
+            render: function(data, type, row){
+              tipos = {
+                'T': 'Temporal',
+                'A': 'Aprendizaje',
+                'V': 'Vinculado'
+              }
+
+              return tipos[data]
+            }
+          },
+          {'data':'activo',
+            render: function(data, type, row){
+              if (data == 'True'){
+                return '<i class="green checkmark icon"></i>'
+              }
+              else {
+                return '<i class="red x icon"></i>'
+              }
+            }
+          }
+        ],
+        columnDefs: [
+            {targets:[7],className: 'center aligned'},
+        ],
+      })
+      
+      /* Tables interactions */
+      $('#table_workers tbody').on('click','tr',function(){
+        let line = table_workers.row(this).data()
+        table_workers.$('tr.selected').removeClass('selected');
+        $(this).addClass('selected')
+        let estado = line.activo == 'True' ? 'Activo':'Retirado'
+        let color = line.activo == 'True' ? 'success':'error'
+        $('#btn-clean-contract-data').hide()
+        $('#div_afiliaciones').show()
+        $('#div_infopersonal').show()
+        $('#btn-create-worker').hide()
+        $('#btn-new-contract').hide()
+        $('#btn-modify-worker').show()
+        $('#id_motivo_cambio_salario').prop('required',false).removeClass('required')
+        $('#div_id_motivo_cambio_salario').hide()
+        $('#modal-worker').find('.header')
+        .html(
+          `<em data-emoji="office_worker_tone3" class="medium"></em>
+            <div class="content">
+              ${line.get_full_name}
+              <div class="ui sub header"><strong>Estado: </strong> <span class="ui ${color} text">${estado}</span></div>
+            </div>
+          
+          `
+        )
+        $('#form-workers').trigger('reset')
+        $('#form-workers .dropdown').dropdown("clear")
+
+        $('div.not-modify, div.field>input.not-modify, div.input:has(input.not-modify)').addClass('disabled').addClass('read-only')
+        
+        if (line.activo == 'True'){
+          $('#btn-modify-worker').show()
+          $('#div_retiro').hide()
+          $('#div_retiro').next('.content').hide()
+        }
+        else {
+          $('#div_retiro').show()
+          $('#btn-modify-worker').hide()
+          if (line.fecha_retiro != "None") {
+            motivo_real = line.contrato_activo.motivo_retiro_real == "None" ? "" : line.contrato_activo.motivo_retiro
+            $('#div_id_fecha_retiro').calendar('set date', line.contrato_activo.fecha_retiro)
+            $('#id_motivo_retiro').dropdown('set value', line.contrato_activo.motivo_retiro.id)
+            $('#id_motivo_retiro_real').val(motivo_real)
+          }
+        }
+        $('#id_numero_id').val(line.numero_identificacion)
+        $('#id_primer_nombre').val(line.primer_nombre)
+        $('#id_segundo_nombre').val(line.segundo_nombre)
+        $('#id_primer_apellido').val(line.primer_apellido)
+        $('#id_segundo_apellido').val(line.segundo_apellido)
+        $('#id_tipo_id').dropdown('set value',line.tipo_id)
+        $('#id_codigo_sap').val(line.codigo_sap)
+        $('#div_id_fecha_nacimiento').calendar('set date',line.fecha_nacimiento)
+        $('#id_sexo').dropdown('set value',line.sexo)
+        $('#id_tipo_vivienda').dropdown('set value',line.tipo_vivienda)
+        $('#id_estado_civil').dropdown('set value',line.estado_civil)
+        $('#id_celular').val(line.contacto)
+        $('#id_telefono').val(line.contacto_otro)
+        $('#id_email').val(line.email)
+        $('#id_direccion').val(line.direccion_residencia)
+        $('#id_departamento').dropdown('set value',line.departamento.id)
+        $.ajax({
+          type: "GET",
+          url: '/humanresources/utils/dependentlist',
+          data:{
+            todo:'citiesbystates',
+            estado:line.departamento.id
+          },
+          success: function(response){
+            $('#id_ciudad').parent('.ui.dropdown').dropdown({values:response.data});
+            $('#id_ciudad').dropdown('set selected',line.ciudad.id)
+          },
+          error: function(xhr, status, error){
+            $.toast({
+              displayTime: 'auto',
+              showProgress: 'top',
+              class: 'error',
+              classProgress: 'error',
+              message: 'Error al cargar las ciudades'
+            })
+          }
+        })
+        $('#id_nivel_educativo').dropdown('set value',line.nivel_educativo)
+        $('#id_rh').dropdown('set value',line.rh)
+        $('#id_talla_camisa').val(line.talla_camisa)
+        $('#id_talla_pantalon').val(line.talla_pantalon)
+        $('#id_talla_calzado').val(line.talla_calzado)
+        $('#id_eps').dropdown('set value',line.eps.id)
+        $('#id_pension').dropdown('set value',line.pension.id)
+        $('#id_cesantias').dropdown('set value',line.cesantias.id)
+        $('#id_arl').dropdown('set value',line.arl.id)
+        $('#id_ccf').dropdown('set value',line.ccf.id)
+        $('#id_tipo_riesgo').dropdown('set value',line.tipo_riesgo)
+        $('#id_tipo_ingreso').dropdown('set value',line.contrato_activo.tipo_ingreso)
+        $('#id_titulo').val(line.titulo)
+        $('#id_empleador').dropdown('set value',line.contrato_activo.empleador.id)
+        $('#id_temporal').dropdown('set value',line.contrato_activo.temporal.id)
+        $('#id_modalidad_ingreso').dropdown('set value',line.contrato_activo.modalidad_ingreso)
+        $('#id_tipo_contrato').dropdown('set value',line.contrato_activo.tipo_contrato)
+        $('#div_id_fecha_inicio').calendar('set date',line.contrato_activo.fecha_inicio)
+        $('#div_id_fecha_fin_pp').calendar('set date',line.contrato_activo.fecha_periodo_prueba)
+        $('#div_id_fecha_fin_cto').calendar('set date',line.contrato_activo.fecha_fin)
+        $('#id_estruct').dropdown('set value',line.contrato_activo.area.estructura.id)
+        $.ajax({
+          type: "GET",
+          url: '/humanresources/utils/dependentlist',
+          data:{
+            todo:'areasbyestructura',
+            estructura:line.contrato_activo.area.estructura.id
+          },
+          success: function(response){
+            $('#id_area').parent('.ui.dropdown').dropdown({values:response.data});
+            $('#id_area').dropdown('set value',line.contrato_activo.area.id)
+            $.ajax({
+              type: "GET",
+              url: '/humanresources/utils/dependentlist',
+              data:{
+                todo:'cargosbyarea',
+                area:line.contrato_activo.area.id
+              },
+              success: function(response){
+                $('#id_cargo').parent('.ui.dropdown').dropdown({values:response.data});
+                $('#id_cargo').dropdown('set value',line.contrato_activo.cargo.id)
+              },
+              error: function(xhr, status, error){
+                $.toast({
+                  displayTime: 'auto',
+                  showProgress: 'top',
+                  class: 'error',
+                  classProgress: 'error',
+                  message: 'Error al cargar los cargos'
+                })
+              }
+            })
+          },
+          error: function(xhr, status, error){
+            $.toast({
+              displayTime: 'auto',
+              showProgress: 'top',
+              class: 'error',
+              classProgress: 'error',
+              message: 'Error al cargar las áreas'
+            })
+          }
+        })
+        $('#id_canal').dropdown('set value',line.contrato_activo.canal.id)
+        $('#id_cceco').dropdown('set value',line.contrato_activo.cceco.id)
+        $('#id_sede').dropdown('set value',line.contrato_activo.sede.id)
+        $('#id_canal').dropdown('set value',line.contrato_activo.canal.id)
+        $('#id_jefe_inmediato').dropdown('set value',line.contrato_activo.jefe_inmediato.id)
+        $('#id_salario_base').val(
+          new Intl.NumberFormat('en-EN').format(line.contrato_activo.salario_base)
+        )
+        var at = line.contrato_activo.auxilio_transporte == 'None' ? '' :
+          new Intl.NumberFormat('en-EN')
+          .format(line.contrato_activo.auxilio_transporte)
+        $('#id_auxilio_transporte').val(at)
+
+        bb = line.contrato_activo.base_bonificacion == 'None' ? '' :
+          new Intl.NumberFormat('en-EN')
+          .format(line.contrato_activo.base_bonificacion)
+        $('#id_base_bonificacion').val(bb)
+        $('#id_bonificacion').dropdown('set value',line.contrato_activo.bonificacion)
+        $('#table-auxilios tbody').empty()
+        var auxilios = line.contrato_activo.auxilios_contrato
+        for (i of auxilios){
+          tipo = i.tipo.id
+          texto = i.tipo.descripcion
+          valor = new Intl.NumberFormat('en-EN').format(i.valor)
+          $('#table-auxilios tbody').append(`
+            <tr>
+              <td class='text-center'>
+              <button type="button" class="ui icon mini disabled circular red button text-center" onclick="remove_auxilio(this)"><i class="minus icon"></i></button>
+                </td>
+              <td>
+                <select required name='tipo_auxilio' class="ui dropdown disabled fluid">
+                  <option value="${tipo}" selected>${texto}</option>
+                </select>
+              </td>
+              <td class="text-center">
+                <div class="ui transparent readonly input text-center">
+                  <input type="text" class="text-center" name="valor_auxilio" value=${valor} readonly>
+                </div>
+              </td>
+          </tr>
+          `)
+        }
+
+
+
+        /* $.ajax({
+          url: window.location.href,
+          type: 'GET',
+          data:{
+            'cargo': line.cargo.id,
+            'todo': 'get_subareas_by_cargo'
+          },
+          success: function(response){
+            $('#id_subarea').parent('.dropdown').dropdown({values:response.data});
+            $('#id_subarea').dropdown('set selected',line.subarea.id)
+          }
+        }) */
+        $('#modal-worker').modal('show')
+      })
+      $('#table_workers tbody').on('contextmenu','tr',function(e){
+          table_workers.$('tr.selected').removeClass('selected');
+          $(this).addClass('selected')
+          let line = table_workers.row('tr.selected').data()
+
+          
+          if (line.activo == 'True') {
+            $('#retirar').removeClass('disabled')
+            $('#descargos').removeClass('disabled')
+            $('#cambiar-contrato').html(`
+              Modificar contrato
+            <i class="folder plus circular teal icon" style='margin-top:-7px'></i>
+            `)
+          }
+          else {
+            $('#retirar').addClass('disabled')
+            $('#descargos').addClass('disabled')
+            $('#cambiar-contrato').html(`
+              Reintegrar
+            <i class="undo alternate circular teal icon" style='margin-top:-7px'></i>
+            `)
+          }
+
+          side = 'left'
+          side_to_remove='right'
+
+          y_side = 'bottom'
+          y_to_remove = 'top'
+          var width = $(document).width()
+          var positionX = e.pageX -20
+          var height = $(document).height()
+          var positionY = e.pageY -20
+
+          if (positionX>=width*3/4){
+              positionX -= 173
+              side = 'right'
+              side_to_remove='left'
+          }
+          positionY = e.pageY+15
+          if (positionY >= height*3/4){
+              positionY -= $("#popup-worker").height() +20
+              y_side = 'top'
+              y_to_remove='bottom'
+          }
+          
+          $('#popup-worker').css({
+              'left':positionX+'px',
+              'top':positionY+'px',
+          }).addClass('transition visible')
+          .removeClass(side_to_remove)
+          .addClass(side)
+          .removeClass(y_to_remove)
+          .addClass(y_side)
+          return false;
+        })
+      $("#popup-worker").click(function(e){
+          let line = table_workers.row($('tr.selected')).data()
+          switch(e.target.id){
+              case "cambiar-contrato":
+                $('#div_afiliaciones').hide()
+                $('#div_infopersonal').hide()
+                $('div.accordion .personalinfo').hide()
+                let estado = line.activo == 'True' ? 'Activo':'Retirado'
+                let color = line.activo == 'True' ? 'success':'error'
+                $('#btn-create-worker').hide()
+                $('#btn-modify-worker').hide()
+                $('#btn-new-contract').show()
+                $('#modal-worker').find('.header')
+                .html(
+                  `<em data-emoji="office_worker_tone3" class="medium"></em>
+                    <div class="content">
+                      ${line.get_full_name}
+                      <div class="ui sub header"><strong>Estado: </strong> <span class="ui ${color} text">${estado}</span></div>
+                    </div>
+                  `
+                )
+                $('#form-workers').trigger('reset')
+                $('#form-workers .dropdown').dropdown("clear")
+                $('div.not-modify, div.field>input.not-modify, div.input:has(input.not-modify)').addClass('disabled').addClass('read-only')
+                $('#id_numero_id').val(line.numero_identificacion)
+                $('#id_primer_nombre').val(line.primer_nombre)
+                $('#id_segundo_nombre').val(line.segundo_nombre)
+                $('#id_primer_apellido').val(line.primer_apellido)
+                $('#id_segundo_apellido').val(line.segundo_apellido)
+                $('#id_tipo_id').dropdown('set value',line.tipo_id)
+                $('#id_codigo_sap').val(line.codigo_sap)
+                $('div.not-modify, div.field>input.not-modify, div.input:has(input.not-modify)').removeClass('disabled').removeClass('read-only')
+                if (line.activo == 'True'){
+                  $('#div_retiro').hide()
+                  $('#id_tipo_riesgo').dropdown('set value',line.tipo_riesgo)
+                  $('#id_tipo_ingreso').dropdown('set value',line.contrato_activo.tipo_ingreso)
+                  $('#id_empleador').dropdown('set value',line.contrato_activo.empleador.id)
+                  $('#id_temporal').dropdown('set value',line.contrato_activo.temporal.id)
+                  $('#id_modalidad_ingreso').dropdown('set value',line.contrato_activo.modalidad_ingreso)
+                  $('#id_tipo_contrato').dropdown('set value',line.contrato_activo.tipo_contrato)
+                  $('#div_id_fecha_inicio').calendar('set date',line.contrato_activo.fecha_inicio)
+                  $('#div_id_fecha_fin_pp').calendar('set date',line.contrato_activo.fecha_periodo_prueba)
+                  $('#div_id_fecha_fin_cto').calendar('set date',line.contrato_activo.fecha_fin)
+                  $('#id_estruct').dropdown('set value',line.contrato_activo.area.estructura.id)
+                  $.ajax({
+                    type: "GET",
+                    url: '/humanresources/utils/dependentlist',
+                    data:{
+                      todo:'areasbyestructura',
+                      estructura:line.contrato_activo.area.estructura.id
+                    },
+                    success: function(response){
+                      $('#id_area').parent('.ui.dropdown').dropdown({values:response.data});
+                      $('#id_area').dropdown('set value',line.contrato_activo.area.id)
+                      $.ajax({
+                        type: "GET",
+                        url: '/humanresources/utils/dependentlist',
+                        data:{
+                          todo:'cargosbyarea',
+                          area:line.contrato_activo.area.id
+                        },
+                        success: function(response){
+                          $('#id_cargo').parent('.ui.dropdown').dropdown({values:response.data});
+                          $('#id_cargo').dropdown('set value',line.contrato_activo.cargo.id)
+                        },
+                        error: function(xhr, status, error){
+                          $.toast({
+                            displayTime: 'auto',
+                            showProgress: 'top',
+                            class: 'error',
+                            classProgress: 'error',
+                            message: 'Error al cargar los cargos'
+                          })
+                        }
+                      })
+                    },
+                    error: function(xhr, status, error){
+                      $.toast({
+                        displayTime: 'auto',
+                        showProgress: 'top',
+                        class: 'error',
+                        classProgress: 'error',
+                        message: 'Error al cargar las áreas'
+                      })
+                    }
+                  })
+                  $('#id_canal').dropdown('set value',line.contrato_activo.canal.id)
+                  $('#id_cceco').dropdown('set value',line.contrato_activo.cceco.id)
+                  $('#id_sede').dropdown('set value',line.contrato_activo.sede.id)
+                  $('#id_canal').dropdown('set value',line.contrato_activo.canal.id)
+                  $('#id_jefe_inmediato').dropdown('set value',line.contrato_activo.jefe_inmediato.id)
+                  $('#id_salario_base').val(
+                    new Intl.NumberFormat('en-EN').format(line.contrato_activo.salario_base)
+                  )
+                  var at = line.contrato_activo.auxilio_transporte == 'None' ? '' :
+                    new Intl.NumberFormat('en-EN')
+                    .format(line.contrato_activo.auxilio_transporte)
+                  $('#id_auxilio_transporte').val(at)
+                  bb = line.contrato_activo.base_bonificacion == 'None' ? '' :
+                    new Intl.NumberFormat('en-EN')
+                    .format(line.contrato_activo.base_bonificacion)
+                  $('#id_base_bonificacion').val(bb)
+                  $('#id_bonificacion').dropdown('set value',line.contrato_activo.bonificacion)
+                  $('#table-auxilios tbody').empty()
+                  var auxilios = line.contrato_activo.auxilios_contrato
+                  for (i of auxilios){
+                    tipo = i.tipo.id
+                    texto = i.tipo.descripcion
+                    valor = new Intl.NumberFormat('en-EN').format(i.valor)
+                    $('#table-auxilios tbody').append(`
+                      <tr>
+                        <td class='text-center'>
+                        <button type="button" class="ui icon mini disabled circular red button text-center" onclick="remove_auxilio(this)"><i class="minus icon"></i></button>
+                          </td>
+                        <td>
+                          <select required name='tipo_auxilio' class="ui dropdown disabled fluid">
+                            <option value="${tipo}" selected>${texto}</option>
+                          </select>
+                        </td>
+                        <td class="text-center">
+                          <div class="ui transparent readonly input text-center">
+                            <input type="text" class="text-center" name="valor_auxilio" value=${valor} readonly>
+                          </div>
+                        </td>
+                    </tr>
+                    `)
+                  }
+
+                  
+                  $('#id_motivo_cambio_salario').prop('required',false).removeClass('required')
+                  $('#div_id_motivo_cambio_salario').hide()
+                  $('#modal-worker').find('.header')
+                }
+                else {
+                  if (line.fecha_retiro != "None") {
+                    $('#div_id_fecha_retiro').calendar('set date', line.fecha_retiro)
+                    $('#div_id_fecha_retiro').show()
+                    let divs = ['#div_contrato','#div_cargo','#div_salarios']
+                    for (div of divs) {
+                      content = $(div).next('.content').first()
+                      content.find('input').val('')
+                      content.find('.ui.dropdown').dropdown('clear')
+                    }
+                    $('#table-auxilios tbody').empty()
+                  }
+                }
+                
+
+
+                $('#modal-worker').modal('show')
+                break; 
+              case "retirar":
+                $('#modal-retire-worker').modal('show')
+                break;
+              case "historiales":
+                $('#contracts-accordion').empty();
+                $('#feed-worker-actions').empty();
+                contratos = line.historico_contratos
+                numberfmt = new Intl.NumberFormat('en-EN')
+                i = contratos.length
+                for (let contrato of contratos){
+                  active = i == contratos.length ? ' active':""
+                  hasta = contrato.activo_hasta == 'None' ? 'Actual' : contrato.activo_hasta
+                  jefe_inmediato = contrato.jefe_inmediato.primer_nombre + ' ' + contrato.jefe_inmediato.primer_apellido
+                  title = `
+                  <div class="title${active}">
+                    <i class="dropdown icon"></i>
+                    <strong>#${i}</strong> - DESDE ${contrato.activo_desde} HASTA ${hasta}
+                  </div>
+                  `
+                  content = `
+                  <div class="content${active}">
+                    <form class="ui form">
+                      <div class="fields">
+                        <div class="two wide field">
+                          <label>Tipo Ingreso</label>
+                            <input readonly="" type="text" value="${contrato.tipo_ingreso}">
+                        </div>
+                        <div class="four wide field">
+                          <label>Empleador</label>
+                            <input readonly="" type="text" value="${contrato.empleador.nombre}">
+                        </div>
+                        <div class="four wide field">
+                          <label>Temporal</label>
+                            <input readonly="" type="text" value="${contrato.temporal.nombre}">
+                        </div>
+                        <div class="six wide field">
+                          <label>Modalidad ingreso</label>
+                            <input readonly="" type="text" value="${contrato.modalidad_ingreso}">
+                        </div>
+                        
+                      </div>
+
+                    <div class="four fields">
+                      <div class="four wide field">
+                          <label>Tipo contrato</label>
+                            <input readonly="" type="text" value="${contrato.tipo_contrato}">
+                        </div>
+                      <div class="field">
+                        <label>Fecha inicio (contrato)</label>
+                          <input readonly="" type="text" value="${contrato.fecha_inicio}">
+                      </div>
+                      <div class="field">
+                        <label>Fecha periodo prueba</label>
+                          <input readonly="" type="text" value="${contrato.fecha_periodo_prueba}">
+                      </div>
+                      <div class="field">
+                        <label>Fecha fin (contrato)</label>
+                          <input readonly="" type="text" value="${contrato.fecha_fin}">
+                      </div>
+                    </div>
+                    
+                    <div class="three fields">
+                      <div class="field">
+                        <label>Estructura</label>
+                          <input readonly="" type="text" value="${contrato.area.estructura.descripcion}">
+                      </div>
+                      <div class="field">
+                        <label>Area</label>
+                          <input readonly="" type="text" value="${contrato.area.descripcion}">
+                      </div>
+                      <div class="field">
+                        <label>Cargo</label>
+                          <input readonly="" type="text" value="${contrato.cargo.descripcion}">
+                      </div>
+                    </div>
+
+                    <div class="fields">
+                        <div class="three wide field">
+                          <label>Canal</label>
+                            <input readonly="" type="text" value="${contrato.canal.descripcion}">
+                        </div>
+                        <div class="five wide field">
+                          <label>Centro de costo</label>
+                            <input readonly="" type="text" value="${contrato.cceco.descripcion}">
+                        </div>
+                        <div class="three wide field">
+                          <label>Sede</label>
+                            <input readonly="" type="text" value="${contrato.sede.descripcion}">
+                        </div>
+                        <div class="five wide field">
+                          <label>Jefe inmediato</label>
+                            <input readonly="" type="text" value="${jefe_inmediato}">
+                        </div>
+                      </div>
+
+                      <div class="fields">
+                        <div class="four wide field">
+                          <label>Salario base</label>
+                            <input readonly="" type="text" value="${numberfmt.format(
+                              contrato.salario_base=="None"?0:contrato.salario_base)}">
+                        </div>
+                        <div class="five wide field">
+                          <label>Auxilio de transporte</label>
+                            <input readonly="" type="text" value="${numberfmt.format(
+                              contrato.auxilio_transporte=="None"?0:contrato.auxilio_transporte)}">
+                        </div>
+                        <div class="three wide field">
+                          <label>Bonificacion</label>
+                            <input readonly="" type="text" value="${contrato.bonificacion}">
+                        </div>
+                        <div class="five wide field">
+                          <label>Base bonificacion</label>
+                            <input readonly="" type="text" value="${numberfmt.format(
+                              contrato.base_bonificacion=="None"?0:contrato.base_bonificacion)}">
+                        </div>
+                      </div>
+                  `
+                  var auxilios = contrato.auxilios_contrato
+                  if (auxilios.length > 0) {
+                    tabla = `
+                    <table class="ui very compact celled table" style="display: table !important;">
+                      <thead>
+                        <tr>
+                          <th style="width:60%">Auxilio</th>
+                          <th style="width:40%">Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                    `
+                    for (aux of auxilios){
+                      texto = aux.tipo.descripcion
+                      valor = new Intl.NumberFormat('en-EN').format(aux.valor)
+                      tabla += `
+                        <tr>
+                          <td>
+                            <div class="ui transparent readonly input text-center">
+                              <input type="text" value="${texto}" readonly="">
+                            </div>
+                          </td>
+                          <td class="text-center">
+                            <div class="ui transparent readonly input text-center">
+                              <input type="text" class="text-center" value="${valor}" readonly>
+                            </div>
+                          </td>
+                      </tr>
+                      `
+                    }
+                    tabla += '</tbody></table>'
+                    content += tabla+'</form></div>'
+                  }
+                  i --
+                  $('#contracts-accordion').append(title).append(content)
+                }
+                /* $('#contracts-accordion').accordion() */
+                
+                let feedactions = line.historico_acciones
+                for (let accion of feedactions) {
+                  feedcontent = `
+                  <div class="event">
+                    <div class="label">
+                      <img src="/media/${accion.profile_user.avatar}">
+                    </div>
+                    <div class="content">
+                      <div class="summary">
+                        <a class="user">
+                          ${accion.profile_user.nombre_completo}
+                        </a> ${accion.texto}
+                        <div class="date">
+                          ${accion.since}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  `
+                  $('#feed-worker-actions').append(feedcontent)
+                }
+                
+                $('#modal-historico').modal('show')
+                break;      
+              case 'descargos':
+                $('#modal-descargos').modal('show')
+                break;
+          }
+      });
+      
+      /* Inputs interactions */
+      $('#id-include-retired').change(function () {
+        let active = $('#div-include-active').checkbox('is checked')
+        let retired = $('#div-include-retired').checkbox('is checked')
+        let url = `/humanresources/workers?todo=getworkers&active=${active}&retired=${retired}`
+        table_workers.ajax.url(url).load()
+      })
+      $('#id-include-active').change(function () {
+        let active = $('#div-include-active').checkbox('is checked')
+        let retired = $('#div-include-retired').checkbox('is checked')
+        let url = `/humanresources/workers?todo=getworkers&active=${active}&retired=${retired}`
+        table_workers.ajax.url(url).load()
+      })
+      $('#id_salario_base').focusout(function(){
+        let line = table_workers.row($('tr.selected')).data()
+        if (line == undefined){return false}
+        let salario = $(this).val().replace(/[\$,]/g, '') * 1
+        let salario_previo = line.contrato_activo.salario_base
+
+        if (salario < salario_previo && line.activo == 'True'){
+          
+          $.toast({
+            displayTime: 'auto',
+            showProgress: 'top',
+            class: 'error',
+            classProgress: 'error',
+            message: 'El nuevo salario no puede ser menor al salario anterior'
+          })
+          $(this).val(new Intl.NumberFormat('en-EN').format(salario_previo))
+          return false;
+        }
+        else if (salario > salario_previo){
+          $('#id_motivo_cambio_salario').prop('required',true).addClass('required')
+          $('#div_id_motivo_cambio_salario').show()
+        }
+        else if (salario == salario_previo){
+          $('#id_motivo_cambio_salario').prop('required',false).removeClass('required')
+          $('#div_id_motivo_cambio_salario').hide()
+        }
+        
+      })
+      $('#id_es_empalme').change(function(){
+        let empalme = $(this).is(':checked')
+        if (empalme){
+          $('#div-empalme').show()
+          $('#div-empalme .ui.dropdown, #div-empalme .ui.input').addClass('required')
+        }
+        else{
+          $('#div-empalme').hide()
+          $('#div-empalme .ui.dropdown, #div-empalme .ui.input').removeClass('required')
+        }
+      })
+
+      /* Modals */
+      $('#modal-worker').modal({
+        keyboardShortcuts : false,
+        closeIcon: true,
+        onApprove: function(){
+          $('#form-workers').submit();
+          return false;
+        }
+      })
+      $('#modal-auxilios').modal({
+          onHide: function(){
+            setTimeout(()=>{
+              $('#modal-worker').modal('show')
+            },420)
+          },
+          onApprove: () => {
+            $('#modal-auxilios').modal('hide')
+            auxilio = $('#id_tipo_auxilio').parent('.ui.dropdown')
+            tipo = auxilio.dropdown('get value')
+            texto = auxilio.dropdown('get text')
+            valor = $('#id_valor_auxilio').val()
+            $('#table-auxilios tbody').append(`
+              <tr>
+                <td class='text-center'>
+                <button type="button" class="ui icon mini circular red button text-center" onclick="remove_auxilio(this)"><i class="minus icon"></i></button>
+                  </td>
+                <td>
+                  <select required name='tipo_auxilio' class="ui dropdown fluid">
+                    <option value="${tipo}" selected>${texto}</option>
+                  </select>
+                </td>
+                <td class="text-center">
+                  <div class="ui transparent readonly input text-center">
+                    <input type="text" class="text-center" name="valor_auxilio" value=${valor} readonly>
+                  </div>
+                </td>
+            </tr>
+            `)
+            $('#modal-auxilios .ui.dropdown').dropdown('clear');
+            $('#modal-auxilios input').val('')
+          }
+        })
+      $('#modal-retire-worker').modal({
+          keyboardShortcuts : false,
+          closeIcon: true,
+          onApprove : function() {
+            errors = 0
+            $('#form-retiro input[required], #form-retiro .dropdown.required > select, #form-retiro select[required]')
+            .each(function(index,element){
+              $(element).parents('div.field').first().removeClass('error');
+              })
+            
+            $('#form-retiro input[required], #form-retiro .dropdown.required > select, #form-retiro select[required]')
+            .each(function(index,element){
+              if($(element).val() == '' || $(element).val() == null){
+                $(element).parents('div.field').first().addClass('error');
+                errors ++
+              }
+            })
+            
+            if(errors > 0){
+              $.toast({
+                displayTime: 'auto',
+                showProgress: 'top',
+                class: 'error',
+                classProgress: 'error',
+                message: 'Debes completar todos los campos obligatorios'
+              })
+              $('#form-retiro').removeClass('loading')
+              return false;
+            }
+            let line = table_workers.row('tr.selected').data()
+            $('#form-retiro').addClass('loading')
+            let formData = new FormData($('#form-retiro')[0]);
+            formData.append('todo','retire_worker')
+            formData.append('numero_id', line.numero_identificacion)
+            $.ajax({
+              url: window.location.href,
+              type: 'POST',
+              data: formData,
+              contentType: false,
+              processData: false,
+              success: function(response){
+                table_workers.ajax.reload(function(){
+                  $.toast({
+                    displayTime: 'auto',
+                    showProgress: 'top',
+                    class: response.class,
+                    classProgress: response.class,
+                    message: response.msj
+                    })
+                    $('#id_fecha_retiro_worker').val('')
+                    $('#form-retiro').removeClass('loading')
+                    .trigger('reset')
+                })
+              },
+              error: function(error){
+                $('#form-retiro').removeClass('loading')
+                $.toast({
+                    displayTime: 'auto',
+                    showProgress: 'top',
+                    class: 'error',
+                    classProgress: 'error',
+                    message: 'Ocurrió un error, contacta al administrador'
+                    })
+              },
+            })
+          }
+        })
+      $('#modal-cambio-contrato').modal({
+          keyboardShortcuts : false,
+          closeIcon: true,
+          onApprove : function() {
+            if ($('#id_fecha_inicio_cambio').val() == ''){
+              $.toast({
+                displayTime: 'auto',
+                showProgress: 'top',
+                class: 'error',
+                classProgress: 'error',
+                message: 'Debes seleccionar una fecha de inicio'
+              })
+              return false;
+            }
+            var form = $('#form-workers')
+            let line = table_workers.row('tr.selected').data()
+            let fecha_cambio = $('#id_fecha_inicio_cambio').val()
+            let formdata = new FormData(form[0]);
+            formdata.append('todo','add_new_contract')
+            formdata.append('activecontract',line.contrato_activo.id);
+            formdata.append('fecha_inicio_cambio',fecha_cambio);
+            $('#modal-cambio-contrato').find('.ui.button').addClass('disabled loading')
+            $.ajax({
+              type:'POST',
+              url: window.location.href,
+              data: formdata,
+              contentType: false,
+              processData: false,
+              success: function(response){
+                if (response.class=='error'){
+                  $.toast({
+                    displayTime: 'auto',
+                    showProgress: 'top',
+                    classProgress: response.class,
+                    class: response.class,
+                    message: response.msj
+                    })
+                }
+                else{
+                  table_workers.ajax.reload(function(){
+                    $('#form-workers').removeClass('loading')
+                    $('#modal-worker').modal('hide')
+                    $('#form-workers').trigger('reset')
+                    $('#form-workers input').val('')
+                    $('#form-workers .ui.dropdown').dropdown('clear')
+                    $('#form-workers input[required], #form-workers .dropdown.required, #form-workers select[required]')
+                    .each(function(index,element){
+                      $(element).parents('div.field').first().removeClass('error');
+                    })
+                    $('#table-auxilios tbody').empty()
+                    $.toast({
+                      displayTime: 'auto',
+                      showProgress: 'top',
+                      classProgress: response.class,
+                      class: response.class,
+                      message: response.msj
+                      })
+                  })
+                }
+                $('#modal-cambio-contrato').modal('hide')
+                $('#modal-cambio-contrato').find('.ui.button').removeClass('disabled loading')
+                $('#id_fecha_inicio_cambio').val('')
+              },
+              error: function(){
+                $('#modal-cambio-contrato').find('.ui.button').removeClass('disabled loading')
+              },
+            })
+      
+      
+          }
+        })
+      $('#modal-descargos').modal({
+        keyboardShortcuts : false,
+        closeIcon: true,
+        onApprove : function() {
+          errors = 0
+          if ($('#id_fecha_descargo').val() == '') {
+            $.toast({
+              displayTime: 'auto',
+              showProgress: 'top',
+              class: 'error',
+              classProgress: 'error',
+              message: 'Debes seleccionar una fecha de descargo'
+            })
+            return false;
+          }
+          let line = table_workers.row('tr.selected').data()
+          $('#form-descargos').addClass('loading')
+          let formData = new FormData($('#form-descargos')[0]);
+          formData.append('todo','add_descargo')
+          formData.append('numero_id', line.numero_identificacion)
+          $.ajax({
+            url: window.location.href,
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function(response){
+              table_workers.ajax.reload(function(){
+                $.toast({
+                    displayTime: 'auto',
+                    showProgress: 'top',
+                    class: response.class,
+                    classProgress: response.class,
+                    message: response.msj
+                  })
+                  $('#id_fecha_descargo').val('')
+                  $('#form-descargos').removeClass('loading')
+                  .trigger('reset')
+              })
+            },
+            error: function(error){
+              $('#form-descargos').removeClass('loading')
+              $.toast({
+                  displayTime: 'auto',
+                  showProgress: 'top',
+                  class: 'error',
+                  classProgress: 'error',
+                  message: 'Ocurrió un error, contacta al administrador'
+                  })
+            },
+          })
+        }
+      })
+        
+        /* Buttons */
+      $('#btn-add-worker').click(function(){
+        table_workers.$('tr.selected').removeClass('selected');
+        $('#btn-clean-contract-data').hide()
+        $('#div_afiliaciones').show()
+        $('#div_infopersonal').show()
+        $('#modal-worker').find('div.header')
+        .html('<i class="user circular tie icon"></i> Crear nuevo empleado')
+        $('#div_id_fecha_ingreso').calendar('set date', new Date())
+        $('#form-workers').trigger('reset')
+        $('#form-workers .dropdown').dropdown('clear')
+        $('#btn-modify-worker').hide()
+        $('#btn-remove-worker').hide()
+        $('#btn-create-worker').show()
+        $('#div_retiro').hide()
+        $('#btn-new-contract').hide()
+        $('div.not-modify, div.field>input.not-modify, div.input:has(input.not-modify)').removeClass('disabled').removeClass('read-only')
+        $('#table-auxilios tbody').empty()
+        $('#id_motivo_cambio_salario').prop('required',false).removeClass('required')
+        $('#div_id_motivo_cambio_salario').hide()
+        $('#div-empalme').hide()
+        $('#div-empalme .ui.dropdown, #div-empalme .ui.input').removeClass('required')
+        $('#id_temporal').parents('.field').first().hide()
+        $('#id_temporal').parent('.ui.dropdown').removeClass('required')
+        $('#modal-worker').modal('show')
+      })
+      $('#btn_auxilios').click(function(){
+        $('#modal-auxilios').modal('show')
+      })
+      $('#btn-add-sheet').click(function(){
+        $('#content-sheet').append($('.hojas').last().clone())
+        $('.hojas').last().find('.dropdown').dropdown()
+      })
+      $('#btn-remove-sheet').click(function(){
+        if ($('.hojas').length > 1){
+          $('.hojas').last().remove()
+        }
+        return false
+        
+      })
+      $('#btn-check-workers').click(function(){
+        $('#modal-check-workers').modal('show')
+      })
+      $('#btn-load-workers-file').click(function(){
+        $('#form-checkworkers').submit();
+      })
+      $('#btn-modify-worker').click(function(){
+        
+        errors = 0
+        $('div.personalinfo input[required], div.personalinfo .dropdown.required > select, div.personalinfo select[required]')
+        .each(function(index,element){
+          $(element).parents('div.field').first().removeClass('error');
+        })
+        
+        $('div.personalinfo input[required], div.personalinfo .dropdown.required > select, div.personalinfo select[required]')
+        .each(function(index,element){
+          if($(element).val() == '' || $(element).val() == null){
+            $(element).parents('div.field').first().addClass('error');
+            errors ++
+          }
+        })
+
+        if(errors > 0){
+          $.toast({
+            displayTime: 'auto',
+            showProgress: 'top',
+            class: 'error',
+            classProgress: 'error',
+            message: 'Debes completar todos los campos obligatorios'
+          })
+          form.removeClass('loading')
+          return false;
+        }
+        
+        var form = $('#form-workers')
+        let line = table_workers.row('tr.selected').data()
+        let formdata = new FormData(form[0]);
+        formdata.append('todo','modify_worker')
+        formdata.append('activecontract',line.contrato_activo.id);
+        $.ajax({
+          type:'POST',
+          url: window.location.href,
+          data: formdata,
+          contentType: false,
+          processData: false,
+          success: function(response){
+            table_workers.ajax.reload(function(){
+              $('#form-workers').removeClass('loading')
+              $('#modal-worker').modal('hide')
+              $('#form-workers').trigger('reset')
+              $('#form-workers input').val('')
+              $('#form-workers .ui.dropdown').dropdown('clear')
+              $('#form-workers input[required], #form-workers .dropdown.required, #form-workers select[required]')
+              .each(function(index,element){
+                $(element).parents('div.field').first().removeClass('error');
+              })
+              $('#table-auxilios tbody').empty()
+              form.removeClass('loading')
+              $.toast({
+                displayTime: 'auto',
+                showProgress: 'top',
+                classProgress: response.class,
+                class: response.class,
+                message: response.msj
+                })
+            })
+            
+          }
+        })
+        
+        
+      })
+      $('#btn-clean-contract-data').click( function(){
+        let divs = ['#div_contrato','#div_cargo','#div_salarios']
+        for (div of divs) {
+          content = $(div).next('.content').first()
+          content.find('input').val('')
+          content.find('.ui.dropdown').dropdown('clear')
+        }
+        $('#table-auxilios tbody').empty()
+      })
+      $('#btn-new-contract').click(function(){
+        
+        errors = 0
+        $('div.contractinfo input[required], div.contractinfo .dropdown.required > select, div.contractinfo select[required]')
+        .each(function(index,element){
+          $(element).parents('div.field').first().removeClass('error');
+        })
+        
+        $('div.contractinfo input[required], div.contractinfo .dropdown.required > select, div.contractinfo select[required]')
+        .each(function(index,element){
+          if($(element).val() == '' || $(element).val() == null){
+            $(element).parents('div.field').first().addClass('error');
+            errors ++
+          }
+        })
+
+        if(errors > 0){
+          $.toast({
+            displayTime: 'auto',
+            showProgress: 'top',
+            class: 'error',
+            classProgress: 'error',
+            message: 'Debes completar todos los campos obligatorios'
+          })
+          form.removeClass('loading')
+          return false;
+        }
+        $('#modal-cambio-contrato').modal('show')
+        
+      })
+      $('#btn-import-workers').click(function(){
+        $('#import-workers-result').addClass('hidden').removeClass('warning success error').empty()
+        $('#modal-import-workers').modal('show')
+      })
+      $('#btn-download-import-file').click(function(){
+        $(this).addClass('loading')
+        $.ajax({
+          url:'/humanresources/masivecreatepartner',
+          type:'GET',
+          data:{
+            todo:'export-file'
+          },
+          success: (response) => {
+            window.open(response.url, "_blank");
+          },
+          complete: () => {
+            $('#btn-download-import-file').removeClass('loading')
+          }
+        })
+      })
+      $('#btn-import-workers-file').click(function(){
+        $('#form-importmasive').submit()
+      })
+
+      /* Dropdowns */
+      $('#id_estruct').change(function(){
+        let estructura = $(this).val()
+        if (estructura == ''){
+          $('#id_area').parent('.ui.dropdown').dropdown({values:[]});
+            $('#id_cargo').parent('.ui.dropdown').dropdown({values:[]});
+        }
+        $.ajax({
+          type: "GET",
+          url: '/humanresources/utils/dependentlist',
+          data:{
+            todo:'areasbyestructura',
+            estructura:estructura
+          },
+          success: function(response){
+            $('#id_area').parent('.ui.dropdown').dropdown({values:response.data});
+            $('#id_cargo').parent('.ui.dropdown').dropdown({values:[]});
+          },
+          error: function(xhr, status, error){
+            $.toast({
+              displayTime: 'auto',
+              showProgress: 'top',
+              class: 'error',
+              classProgress: 'error',
+              message: 'Error al cargar las áreas'
+            })
+          }
+        })
+      })
+      $('#id_area').change(function(){
+        let area = $(this).val()
+        if (area == ''){
+          $('#id_cargo').parent('.ui.dropdown').dropdown({values:[]});
+          return
+        }
+
+        $.ajax({
+          type: "GET",
+          url: '/humanresources/utils/dependentlist',
+          data:{
+            todo:'cargosbyarea',
+            area:area
+          },
+          success: function(response){
+            $('#id_cargo').parent('.ui.dropdown').dropdown({values:response.data});
+          },
+          error: function(xhr, status, error){
+            $.toast({
+              displayTime: 'auto',
+              showProgress: 'top',
+              class: 'error',
+              classProgress: 'error',
+              message: 'Error al cargar los cargos'
+            })
+          }
+        })
+      })
+      $('#id_tipo_ingreso').change(function(){
+        let tipo = $(this).val()
+        if (tipo == 'T'){
+          $('#id_temporal').parents('.field').first().show()
+          $('#id_temporal').parent('.ui.dropdown').addClass('required')
+        }
+        else {
+          $('#id_temporal').parents('.field').first().hide()
+          $('#id_temporal').parent('.ui.dropdown').removeClass('required')
+        }
+      })
+      $('#id_departamento').change(function(){
+        let estado = $(this).val()
+        if (estado == ''){
+          $('#id_ciudad').parent('.ui.dropdown').dropdown({values:[]})
+          return
+        }
+        $.ajax({
+          type: "GET",
+          url: '/humanresources/utils/dependentlist',
+          data:{
+            todo:'citiesbystates',
+            estado:estado
+          },
+          success: function(response){
+            $('#id_ciudad').parent('.ui.dropdown').dropdown({values:response.data});
+          },
+          error: function(xhr, status, error){
+            $.toast({
+              displayTime: 'auto',
+              showProgress: 'top',
+              class: 'error',
+              classProgress: 'error',
+              message: 'Error al cargar las ciudades'
+            })
+          }
+        })
+      })
+      
+
+      /* Forms */
+      $('#form-workers').submit(function(e){
+        e.preventDefault();
+        $(this).addClass('loading')
+        errors = 0
+        $('#form-workers input[required], #form-workers .dropdown.required > select, #form-workers select[required]')
+        .each(function(index,element){
+          $(element).parents('div.field').first().removeClass('error');
+          })
+        
+        $('#form-workers input[required], #form-workers .dropdown.required > select, #form-workers select[required]')
+        .each(function(index,element){
+          if($(element).val() == '' || $(element).val() == null){
+            $(element).parents('div.field').first().addClass('error');
+            errors ++
+          }
+        })
+        
+        if(errors > 0){
+          $.toast({
+            displayTime: 'auto',
+            showProgress: 'top',
+            class: 'error',
+            classProgress: 'error',
+            message: 'Debes completar todos los campos obligatorios'
+          })
+          $(this).removeClass('loading')
+          return false;
+        }
+        let formData = new FormData(this);
+        let approvebutton = $('#modal-worker').find('.approve.button')
+        formData.append('todo','add_new_worker')
+        $.ajax({
+          url: window.location.href,
+          type: 'POST',
+          data: formData,
+          contentType: false,
+          processData: false,
+          success: function(response){
+          
+            if (response.class=='success'){
+              table_workers.ajax.reload(function(){
+                $('#modal-worker').modal('hide')
+                $('#form-workers').trigger('reset')
+                $('#form-workers input').val('')
+                $('#form-workers .ui.dropdown').dropdown('clear')
+                $('#form-workers input[required], #form-workers .dropdown.required, #form-workers select[required]')
+                .each(function(index,element){
+                  $(element).parents('div.field').first().removeClass('error');
+                })
+                $('#table-auxilios tbody').empty()
+              })
+            }
+            $.toast({
+                displayTime: 'auto',
+                showProgress: 'top',
+                classProgress: response.class,
+                class: response.class,
+                message: response.msj
+              })
+            $('#form-workers').removeClass('loading')
+            
+          },
+          error: function(error){
+            $('#form-workers').removeClass('loading')
+          },
+        })
+      });
+      $('#form-checkworkers').submit(function(e){
+        e.preventDefault();
+        $('#form-checkworkers button').addClass('loading disabled')
+        $(this).addClass('loading')
+        let formData = new FormData(this);
+        formData.append('todo','check_workers')
+        $.ajax({
+          url: window.location.href,
+          type: 'POST',
+          data: formData,
+          contentType: false,
+          processData: false,
+          success: function(response){
+            $.toast({
+                displayTime: 0,
+                showProgress: 'top',
+                closeIcon:true,
+                class: response.class,
+                message: response.msj
+                })
+            $('#modal-check-workers').modal('hide')
+            
+          },
+          complete: function() {
+            $('#form-checkworkers').removeClass('loading')
+            $('#form-checkworkers button').removeClass('loading disabled')
+          }
+        })
+      })
+      $('#form-importmasive').submit(function(e){
+        e.preventDefault();
+        $(this).addClass('loading')
+        $('#btn-import-workers-file').addClass('disabled loading')
+        $('#import-workers-result').addClass('hidden').removeClass('warning success error').empty()
+        let data = new FormData(this)
+        $.ajax({
+          type:'POST',
+          url:'/humanresources/masivecreatepartner',
+          data:data,
+          contentType:false,
+          processData:false,
+          success: (response) => {
+            table_workers.ajax.reload();
+            $('#form-importmasive').trigger('reset')
+            const creados = response.creados || 0
+            const actualizados = response.actualizados || 0
+            const omitidos = response.omitidos || 0
+            const conflictos = response.conflictos || 0
+            const errors = response.errores || 0
+            const noImportables = response.no_importables || 0
+            const noImportablesDetalle = response.no_importables_detalle || 0
+            const ignoredRows = response.ignored_rows || 0
+            const toastClass = response.class || (creados + actualizados > 0 ? 'success' : 'warning')
+            let message = `Importación finalizada. Creados: ${creados}, actualizados: ${actualizados}, omitidos: ${omitidos}, conflictos: ${conflictos}, errores: ${errors}, no importables: ${noImportables} (${noImportablesDetalle} con detalle${ignoredRows ? `, ${ignoredRows} ignoradas` : ''}).`
+            const detailLines = []
+            const conflictosDetalle = response.detalles_conflicto || []
+            const erroresDetalle = response.detalles_error || []
+            const noImportablesItems = response.detalles_no_importables || []
+
+            if (conflictosDetalle.length > 0){
+              detailLines.push('<strong>Conflictos:</strong>')
+              conflictosDetalle.slice(0, 5).forEach(item => {
+                detailLines.push(`Fila ${item.fila} - ID ${item.id}: ${item.motivo}`)
+              })
+            }
+
+            if (erroresDetalle.length > 0){
+              detailLines.push('<strong>Errores:</strong>')
+              erroresDetalle.slice(0, 5).forEach(item => {
+                detailLines.push(`Fila ${item.fila} - ID ${item.id}: ${item.error}`)
+              })
+            }
+
+            if (noImportablesItems.length > 0){
+              detailLines.push('<strong>No importables:</strong>')
+              noImportablesItems.slice(0, 5).forEach(item => {
+                const issues = (item.issues || []).join(', ')
+                detailLines.push(`Fila ${item.fila} - ID ${item.id}: ${issues}`)
+              })
+            }
+
+            $('#import-workers-result')
+              .removeClass('hidden warning success error')
+              .addClass(toastClass)
+              .html(`
+                <div><strong>Resultado:</strong> ${message}</div>
+                ${detailLines.length ? `<div style="margin-top:0.75rem; white-space:pre-line;">${detailLines.join('<br>')}</div>` : ''}
+              `)
+
+            $.toast({
+              displayTime: 'auto',
+              showProgress: 'top',
+              class: toastClass,
+              classProgress: toastClass,
+              message: message
+            })
+          },
+          error: () => {
+            $.toast({
+              displayTime: 'auto',
+              showProgress: 'top',
+              class: 'error',
+              classProgress: 'error',
+              message: 'Ocurrió un error, intentalo de nuevo o contacta al administrador.'
+            })
+          },
+          complete: () => {
+            $('#form-importmasive').removeClass('loading')
+            $('#btn-import-workers-file').removeClass('disabled loading')
+          }
+        })
+      })
+    })
+    function remove_auxilio(button){
+      $(button).parents('tr')[0].remove()
+    }
+</script>
+{%endblock%}
+{%block style%}
+<link rel="stylesheet" href="https://cdn.datatables.net/2.1.6/css/dataTables.semanticui.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/searchbuilder/1.8.0/css/searchBuilder.semanticui.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.1.2/css/buttons.dataTables.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/datetime/1.5.3/css/dataTables.dateTime.min.css">
+<link rel="stylesheet" href="{%static 'css/hrnotifications.css'%}">
+<style>
+  th {
+    text-align:center!important;
+  }
+  td {
+    font-size: x-small;
+  }
+  tbody{
+    cursor: pointer;
+  }
+  table{
+    width: 100%;
+  }
+  .text-center {
+    text-align: center!important;
+  }
+  .ui.modal .ui.dropdown .menu,
+.ui.modal .ui.calendar .popup {
+  z-index: 1100 !important;
+}
+.ui.modal {
+  overflow: visible !important;
+}
+</style>
+{%endblock%}

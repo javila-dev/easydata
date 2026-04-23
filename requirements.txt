@@ -1,0 +1,15 @@
+Django==4.1
+reportlab==3.6.6
+django-crispy-forms
+openpyxl==3.0.3
+cython
+python-dateutil
+django-registration-redux
+crispy-forms-semantic-ui
+xhtml2pdf
+psycopg2-binary
+gunicorn
+whitenoise
+requests
+xhtml2pdf
+django-livereload-server

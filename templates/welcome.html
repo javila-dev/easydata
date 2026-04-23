@@ -1,0 +1,409 @@
+{%extends 'base.html'%}{%load static%}
+{%block content%}
+<div class="welcome">
+<section class="welcome-container">
+  <h1 class="title">
+    <span>Hola {{request.user.first_name.upper}}</span>
+    <span>que lindo</span>
+    <span>verte <em data-emoji=":heart_eyes:"></em></span>
+  </h1>
+  <h2 class="title">
+    <span>Espero que hoy</span>
+    <span>tengas un</span>
+    <span>lindo día <em data-emoji=":coffee:"></em></span>
+  </h2>
+</section>
+  
+</div>
+<div class="logo-container">
+  <svg
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  width="300"
+  zoomAndPan="magnify"
+  viewBox="0 0 375 374.999991"
+  height="300"
+  preserveAspectRatio="xMidYMid meet"
+  version="1.0"
+>
+  <defs>
+    <clipPath id="095c8d5f05">
+      <path
+        d="M 27.464844 37.5 L 347.535156 37.5 L 347.535156 357.574219 L 27.464844 357.574219 Z M 27.464844 37.5 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="c5e02d0796">
+      <path
+        d="M 187.5 37.5 C 99.113281 37.5 27.464844 109.152344 27.464844 197.535156 C 27.464844 285.921875 99.113281 357.574219 187.5 357.574219 C 275.886719 357.574219 347.535156 285.921875 347.535156 197.535156 C 347.535156 109.152344 275.886719 37.5 187.5 37.5 Z M 187.5 37.5 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="6ea1d1b0a1">
+      <path
+        d="M 56.574219 220.226562 L 97 220.226562 L 97 260.652344 L 56.574219 260.652344 Z M 56.574219 220.226562 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="4369707f4b">
+      <path
+        d="M 76.785156 220.226562 C 65.625 220.226562 56.574219 229.277344 56.574219 240.4375 C 56.574219 251.601562 65.625 260.652344 76.785156 260.652344 C 87.949219 260.652344 97 251.601562 97 240.4375 C 97 229.277344 87.949219 220.226562 76.785156 220.226562 Z M 76.785156 220.226562 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="ce69640d96">
+      <path
+        d="M 65.785156 229.4375 L 87.789062 229.4375 L 87.789062 251.441406 L 65.785156 251.441406 Z M 65.785156 229.4375 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="09b847f450">
+      <path
+        d="M 76.785156 229.4375 C 70.710938 229.4375 65.785156 234.363281 65.785156 240.4375 C 65.785156 246.515625 70.710938 251.441406 76.785156 251.441406 C 82.863281 251.441406 87.789062 246.515625 87.789062 240.4375 C 87.789062 234.363281 82.863281 229.4375 76.785156 229.4375 Z M 76.785156 229.4375 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="da3a7d3ab4">
+      <path
+        d="M 127.238281 151.023438 L 167.664062 151.023438 L 167.664062 191.453125 L 127.238281 191.453125 Z M 127.238281 151.023438 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="0d11ae411f">
+      <path
+        d="M 147.449219 151.023438 C 136.285156 151.023438 127.238281 160.074219 127.238281 171.238281 C 127.238281 182.402344 136.285156 191.453125 147.449219 191.453125 C 158.613281 191.453125 167.664062 182.402344 167.664062 171.238281 C 167.664062 160.074219 158.613281 151.023438 147.449219 151.023438 Z M 147.449219 151.023438 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="3e0e9a19d7">
+      <path
+        d="M 136.449219 160.234375 L 158.453125 160.234375 L 158.453125 182.242188 L 136.449219 182.242188 Z M 136.449219 160.234375 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="f5e1ac2f8b">
+      <path
+        d="M 147.449219 160.234375 C 141.375 160.234375 136.449219 165.160156 136.449219 171.238281 C 136.449219 177.316406 141.375 182.242188 147.449219 182.242188 C 153.527344 182.242188 158.453125 177.316406 158.453125 171.238281 C 158.453125 165.160156 153.527344 160.234375 147.449219 160.234375 Z M 147.449219 160.234375 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="af46dd85ef">
+      <path
+        d="M 195.113281 215.324219 L 235.539062 215.324219 L 235.539062 255.753906 L 195.113281 255.753906 Z M 195.113281 215.324219 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="b3a254759c">
+      <path
+        d="M 235.539062 235.539062 C 235.539062 224.375 226.492188 215.324219 215.328125 215.324219 C 204.164062 215.324219 195.113281 224.375 195.113281 235.539062 C 195.113281 246.703125 204.164062 255.753906 215.328125 255.753906 C 226.492188 255.753906 235.539062 246.703125 235.539062 235.539062 Z M 235.539062 235.539062 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="2fa037313b">
+      <path
+        d="M 204.328125 224.535156 L 226.332031 224.535156 L 226.332031 246.542969 L 204.328125 246.542969 Z M 204.328125 224.535156 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="9fb95cec13">
+      <path
+        d="M 226.332031 235.539062 C 226.332031 229.460938 221.40625 224.535156 215.328125 224.535156 C 209.253906 224.535156 204.328125 229.460938 204.328125 235.539062 C 204.328125 241.613281 209.253906 246.542969 215.328125 246.542969 C 221.40625 246.542969 226.332031 241.613281 226.332031 235.539062 Z M 226.332031 235.539062 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="3d15ecb7f6">
+      <path
+        d="M 278 135.390625 L 318.425781 135.390625 L 318.425781 175.820312 L 278 175.820312 Z M 278 135.390625 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="9aa07097d1">
+      <path
+        d="M 298.214844 135.390625 C 287.050781 135.390625 278 144.441406 278 155.605469 C 278 166.769531 287.050781 175.820312 298.214844 175.820312 C 309.375 175.820312 318.425781 166.769531 318.425781 155.605469 C 318.425781 144.441406 309.375 135.390625 298.214844 135.390625 Z M 298.214844 135.390625 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="0a99993ae8">
+      <path
+        d="M 287.210938 144.601562 L 309.214844 144.601562 L 309.214844 166.609375 L 287.210938 166.609375 Z M 287.210938 144.601562 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+    <clipPath id="8243ec4c62">
+      <path
+        d="M 298.214844 144.601562 C 292.136719 144.601562 287.210938 149.527344 287.210938 155.605469 C 287.210938 161.683594 292.136719 166.609375 298.214844 166.609375 C 304.289062 166.609375 309.214844 161.683594 309.214844 155.605469 C 309.214844 149.527344 304.289062 144.601562 298.214844 144.601562 Z M 298.214844 144.601562 "
+        clip-rule="nonzero"
+      />
+    </clipPath>
+  </defs>
+  <g clip-path="url(#095c8d5f05)">
+    <g clip-path="url(#c5e02d0796)">
+      <path id="circle-bg"
+        fill="rgb(27 28 29)"
+        d="M 27.464844 37.5 L 347.535156 37.5 L 347.535156 357.574219 L 27.464844 357.574219 Z M 27.464844 37.5 "
+        fill-opacity="1"
+        fill-rule="nonzero"
+      />
+    </g>
+  </g>
+  <path id="line-1"
+    stroke-linecap="round"
+    transform="matrix(0.40482, -0.40482, 0.40482, 0.40482, 88.499617, 222.450353)"
+    fill="none"
+    stroke-linejoin="miter"
+    d="M 8.502959 8.500158 L 87.241728 8.500158 "
+    class="line-black"
+    stroke-width="17"
+    stroke-opacity="1"
+    stroke-miterlimit="4"
+  />
+  <g clip-path="url(#6ea1d1b0a1)" >
+    <g clip-path="url(#4369707f4b)">
+      <path id="point-1"
+        class="black"
+        d="M 56.574219 220.226562 L 97 220.226562 L 97 260.652344 L 56.574219 260.652344 Z M 56.574219 220.226562 "
+        fill-opacity="1"
+        fill-rule="nonzero"
+      />
+    </g>
+  </g>
+  <g clip-path="url(#ce69640d96)" >
+    <g clip-path="url(#09b847f450)">
+      <path id="centerpoint-1"
+        class="center-white"
+        d="M 65.785156 229.4375 L 87.789062 229.4375 L 87.789062 251.441406 L 65.785156 251.441406 Z M 65.785156 229.4375 "
+        fill-opacity="1"
+        fill-rule="nonzero"
+      />
+    </g>
+  </g>
+  <g clip-path="url(#da3a7d3ab4)" >
+    <g clip-path="url(#0d11ae411f)">
+      <path id="point-2"
+      class="black"
+        d="M 127.238281 151.023438 L 167.664062 151.023438 L 167.664062 191.453125 L 127.238281 191.453125 Z M 127.238281 151.023438 "
+        fill-opacity="1"
+        fill-rule="nonzero"
+      />
+    </g>
+  </g>
+  <g clip-path="url(#3e0e9a19d7)">
+    <g clip-path="url(#f5e1ac2f8b)">
+      <path id="centerpoint-2"
+        class="center-white"
+        d="M 136.449219 160.234375 L 158.453125 160.234375 L 158.453125 182.242188 L 136.449219 182.242188 Z M 136.449219 160.234375 "
+        fill-opacity="1"
+        fill-rule="nonzero"
+      />
+    </g>
+  </g>
+  <path id="line-2"
+    stroke-linecap="round"
+    transform="matrix(0.40482, 0.40482, -0.40482, 0.40482, 168.430541, 181.835978)"
+    class="line-black"
+    stroke-linejoin="miter"
+    d="M 8.49998 8.502089 L 77.835449 8.497265 "
+    stroke="#ffffff"
+    stroke-width="17"
+    stroke-opacity="1"
+    stroke-miterlimit="4"
+  />
+  <g clip-path="url(#af46dd85ef)">
+    <g clip-path="url(#b3a254759c)">
+      <path id="point-3"
+        class="black"
+        d="M 235.539062 215.324219 L 235.539062 255.753906 L 195.113281 255.753906 L 195.113281 215.324219 Z M 235.539062 215.324219 "
+        fill-opacity="1"
+        fill-rule="nonzero"
+      />
+    </g>
+  </g>
+  <g clip-path="url(#2fa037313b)">
+    <g clip-path="url(#9fb95cec13)">
+      <path id="centerpoint-3"
+        class="center-white"
+        d="M 226.332031 224.535156 L 226.332031 246.542969 L 204.328125 246.542969 L 204.328125 224.535156 Z M 226.332031 224.535156 "
+        fill-opacity="1"
+        fill-rule="nonzero"
+      />
+    </g>
+  </g>
+  <path id="line-3"
+    stroke-linecap="round"
+    transform="matrix(0.40482, -0.40482, 0.40482, 0.40482, 229.069852, 216.719311)"
+    fill="none"
+    stroke-linejoin="miter"
+    d="M 8.502348 8.500961 L 112.348749 8.500961 "
+    class="line-black"
+    stroke-width="17"
+    stroke-opacity="1"
+    stroke-miterlimit="4"
+  />
+  <g clip-path="url(#3d15ecb7f6)">
+    <g clip-path="url(#9aa07097d1)">
+      <path id="point-4"
+        class="black"
+        d="M 278 135.390625 L 318.425781 135.390625 L 318.425781 175.820312 L 278 175.820312 Z M 278 135.390625 "
+        fill-opacity="1"
+        fill-rule="nonzero"
+      />
+    </g>
+  </g>
+  <g clip-path="url(#0a99993ae8)">
+    <g clip-path="url(#8243ec4c62)">
+      <path id="centerpoint-4"
+        class="center-white"
+        d="M 287.210938 144.601562 L 309.214844 144.601562 L 309.214844 166.609375 L 287.210938 166.609375 Z M 287.210938 144.601562 "
+        fill-opacity="1"
+        fill-rule="nonzero"
+      />
+    </g>
+  </g>
+  </svg>
+</div>
+<div class="logo-name">
+  <h1 class="logotext"></h1>
+    Easy data
+  </h1>
+</div>
+</div>
+  {%endblock%}
+  {%block script%}
+  <script src="{%static 'js/utils.js'%}"></script>
+  <script>
+    $(document).ready(function() {
+      setTimeout(function(){
+      $('.logo-container').show()
+      $('svg path').addClass('visible')
+      setTimeout(function(){
+        $('.white').removeClass('white').addClass('black');
+        $('.center-white').removeClass('center-white').addClass('center-black');
+        $('.line-white').removeClass('line-white').addClass('line-black');
+        $('.black').removeClass('black').addClass('white');
+        $('.line-black').removeClass('line-black').addClass('line-white');
+        setTimeout(function(){
+          $('svg').addClass('finalposition')
+          setTimeout(function(){
+            $('.logo-container').addClass('final-position')
+            setTimeout(function(){
+              $('.logo-name').addClass('reveal')
+            },1500)
+          },1500)
+        },1000)
+      },2000)
+    },7000)
+    });
+  </script>
+  {%endblock%}
+  {%block style%}
+  <link rel="stylesheet" href="{%static 'css/landing.css'%}">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
+    
+    .logo-name{
+      font-family: "Quicksand"!important;
+      font-size: 5.5em!important;
+      color: rgb(27 28 29);
+      position: absolute;
+      top:38.5%;
+      left: 42%;
+      opacity: 0;
+    }
+    .logo-name.reveal{
+      animation: textanimation ease 1.5s;
+      animation-iteration-count: 1;
+      animation-fill-mode: forwards;
+    }
+    svg path.visible{
+      opacity: 0;
+      animation: logo ease 0.5s;
+      animation-iteration-count: 1;
+      animation-fill-mode: forwards;
+    }
+    .line-white{
+      stroke: white
+    }
+    .white, .center-white {
+      fill:white
+    }
+    .line-black{
+      stroke: rgb(27 28 29)
+    }
+    .black, .center-black {
+      fill: rgb(27 28 29)
+    }
+    svg.finalposition{
+      animation: logoreduce cubic-bezier(0.32, 0.57, 0.59, 1.01) 1.5s;
+      animation-iteration-count: 1;
+      animation-fill-mode: forwards;
+    }
+  
+    .logo-container{
+      display: none;
+      position: absolute;
+      top: 20%;
+      left:35%
+    }
+  
+    .logo-container.final-position{
+      animation: logofinalposition ease 1.5s;
+      animation-iteration-count: 1;
+      animation-fill-mode: forwards;
+    }
+  
+    #circle-bg.visible{
+      animation-delay: 2.05s;
+    }
+    #line-1.visible {
+      animation-delay: 0.55s;
+    }
+    #point-2.visible {
+      animation-delay: 0.55s;
+    }
+    #line-2.visible {
+      animation-delay: 1.05s;
+    }
+    #point-3.visible {
+      animation-delay: 1.05s;
+    }
+    #line-3.visible {
+      animation-delay: 1.55s;
+    }
+    #point-4.visible {
+      animation-delay: 1.55s;
+    }
+  
+    @keyframes textanimation{
+      0% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+    @keyframes logofinalposition{
+      0%{
+        left:35%
+      }
+      100%{
+        left:23%
+      }
+    }
+    @keyframes logoreduce {
+      0% {
+        transform: scale(1);
+      }
+      100% {
+        transform: scale(0.5);
+      }
+    }
+    @keyframes logo {
+      0% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+  </style>
+  {%endblock%}

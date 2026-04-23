@@ -1,0 +1,179 @@
+{%extends 'base.html'%}{%load static%}{%load crispy_forms_tags%}
+{%block content%}
+<div class="ui segment" style="padding-top: 0px;padding-left: 0px;padding-bottom: 0px;padding-right: 0px;margin-bottom: 0px;
+  border-bottom-width: 0px;border-left-width: 0px;border-top-width: 0px;border-right-width: 0px;">
+  <div class='ui center aligned basic segment' id='personal_list'>
+    <div class="ui three column grid">
+        <div class="column">
+          <div class="ui fluid card" style="height: 100%;">
+            <div style="height: 100%;">
+                <canvas id="chart_areas_division"></canvas>
+              </div>
+            <div class="content">
+              <a class="header">División por areas</a>
+            </div>
+          </div>
+        </div>
+        <div class="column">
+          <div class="ui fluid card">
+            <div>
+                <canvas id="chart_areas_budget"></canvas>
+              </div>
+            <div class="content">
+              <a class="header">Real vs Teorico</a>
+            </div>
+          </div>
+          <div class="ui fluid card">
+            <div>
+                <canvas id="chart_areas_cost"></canvas>
+              </div>
+            <div class="content">
+              <a class="header">Salarios por area</a>
+            </div>
+          </div>
+        </div>
+        <div class="column">
+          <div class="ui fluid card" style="height: 100%;">
+            <div style="height: 100%;">
+              <canvas id="chart_subareas_by_areas"></canvas>
+            </div>
+            <div class="content">
+              <a class="header">Subareas por area </a>
+            </div>
+          </div>
+        </div>
+      </div>
+  </div>
+</div>
+{%endblock%}
+{%block script%}
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/css/dataTables.semanticui.min.css"></script>
+<script src="https://cdn.datatables.net/searchpanes/2.2.0/js/dataTables.searchPanes.min.js"></script>
+<script src="https://cdn.datatables.net/select/1.7.0/js/dataTables.select.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{%static 'js/utils.js'%}"></script>
+<script src="{%static 'js/jquery.mask.js'%}"></script>
+<script>
+    $(document).ready(function() {
+        const ctx = document.getElementById('chart_areas_division');
+        var chartbyareas = new Chart(ctx, {
+        type: 'doughnut',
+        });
+        var chartbudget = new Chart($('#chart_areas_budget'), {
+        type: 'bar',
+        options:{
+          scales: {
+          y:{
+            min: -300,
+            max:300
+          }
+        }
+        }
+        
+        });
+        var chartsalaryareas = new Chart($('#chart_areas_cost'),{
+          type: 'bar',
+          options:{
+            indexAxis: 'y',
+          },
+        })
+        var chart_subareas_by_areas = new Chart($('#chart_subareas_by_areas'),{
+          type: 'bar',
+          responsive: true,
+          options:{
+            maintainAspectRatio: false,
+            plugins:{
+              legend:{
+                display:false,  
+              }
+              
+            },
+            scales: {
+              x: {
+                stacked: true,
+              },
+              y: {
+                stacked: true
+              }
+            }
+          }
+          
+        })
+
+
+        var getChartData = function(chart, queryset, datasets, 
+                                      xfieldtype=null ,xvalue=null, 
+                                      yfieldtype ,yvalue, labels) {
+            $.ajax({
+                type: 'GET',
+                url: window.location.href,
+                data:{
+                    todo:'chart',
+                    report:queryset,
+                },
+                success: function(response){
+                    let parsing = {}
+
+                    if (xfieldtype != null) {
+                      parsing[xfieldtype] = xvalue
+                    }
+                    
+                    parsing[yfieldtype] = yvalue
+
+                    ds = []
+
+                    if (datasets == null){
+                      for (const dataset in response) {
+                          ds.push({
+                                label:response[dataset].dataset_label,
+                                data: response[dataset].data
+                        })
+                      }
+                      new_data = {
+                        labels : response.labels,
+                        datasets: ds,  
+                      }
+                    }
+                    else {
+                        for (const dataset of datasets) {
+                            ds.push({
+                                  label:response[dataset].dataset_label,
+                                  data: response[dataset].data
+                          })
+                        }
+                        new_data = {
+                          labels : response[labels].labels,
+                          datasets: ds,  
+                        }
+                    }
+                    
+                    chart.data = new_data
+                    chart.options.parsing = parsing
+                    chart.update();
+                    /* console.log(response[dataset]) */
+                }
+            })
+        }
+
+        getChartData(chart = chartbyareas, queryset = 'quantybyareas', datasets=['areas',],
+                      null,null,
+                     yfieldtype = 'key', yvalue = 'total', labels = 'areas' );
+        getChartData(chart = chartbudget, queryset = 'quantybyareas', datasets= ['areas',],
+                     yfieldtype = 'yAxisKey', yvalue = 'budgetdifference', 
+                     xfieldtype = 'xAxisKey', xvalue = 'descripcion', 
+                     labels = 'areas' );
+        getChartData(chart = chartsalaryareas, queryset = 'quantybyareas', datasets= ['areas',],
+                     yfieldtype = 'yAxisKey', yvalue = 'descripcion', 
+                     xfieldtype = 'xAxisKey', xvalue = 'total_salarios', 
+                     labels = 'areas' );
+        getChartData(chart = chart_subareas_by_areas, queryset = 'subareasbyareas', datasets= null,
+                     yfieldtype = 'yAxisKey', yvalue = 'total', 
+                     xfieldtype = 'xAxisKey', xvalue = 'area', 
+                     labels = null );
+                     
+    })
+     
+
+</script>
+{%endblock%}

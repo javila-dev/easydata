@@ -1,0 +1,177 @@
+{%extends 'base.html'%}{%load static%}{%load crispy_forms_tags%}
+{%block submenu%}
+    <a class="item" href="/humanresources/landing/">
+      <i class="home icon"></i>
+    </a>
+    <a class="item" href="/humanresources/workers">Detalle personal</a>
+    <a class="item active" href="/humanresources/transitions">Empalmes</a>
+    <a class="item" href="/humanresources/parameters">Parametros</a>
+    <a class="item" href="/humanresources/historial">Historial</a>
+{%endblock%}
+{%block content%}
+<div class="ui raised segment" style="margin: 0.5rem 1rem;">
+    <div class="ui scrolling" style="margin:0;width: 100%;">
+        <table class="ui head stuck unstackable compact selectable table" id="tabla-empalmes"
+            style="width: 100%;">
+        <thead>
+            <tr>
+                <th>Quien Ingresa</th>
+                <th>Quien Sale</th>
+                <th>Estructura</th>
+                <th>Area</th>
+                <th>Motivo</th>
+                <th>Fecha inicio</th>
+                <th>Fecha fin</th>
+                <th>Días</th>
+                <th>Fecha real fin</th>
+                <th>Diferencia</th>
+            </tr>
+        </thead>
+        </table>
+    </div>
+</div>
+
+{%endblock%}
+{%block script%}
+<script src="https://cdn.lordicon.com/lordicon.js"></script>
+<script src="{%static 'js/utils.js'%}"></script>
+<script src="{%static 'js/jquery.mask.js'%}"></script>
+<script src="{%static 'js/hrnotifications.js'%}"></script>
+
+<script src="https://cdn.datatables.net/2.1.6/js/dataTables.js"></script>
+<script src="https://cdn.datatables.net/2.1.6/js/dataTables.semanticui.js"></script>
+<!-- <script src="https://cdn.datatables.net/2.1.6/js/dataTables.js"></script> -->
+<script src="https://cdn.datatables.net/searchbuilder/1.8.0/js/dataTables.searchBuilder.js"></script>
+<script src="https://cdn.datatables.net/searchbuilder/1.8.0/js/searchBuilder.dataTables.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/dataTables.buttons.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.dataTables.js"></script>
+<script src="https://cdn.datatables.net/datetime/1.5.3/js/dataTables.dateTime.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.print.min.js"></script>
+
+
+<script>
+    $(document).ready(function() {
+        $('.ui.dropdown').dropdown({
+            clearable: true,
+        })
+
+        /* Tablas */
+        var tabla_empalmes = new DataTable('#tabla-empalmes', {
+            paging: false,
+            processing: true,
+            order: [[ 6, "desc" ]],
+            ajax: {
+                url: window.location.href+'?todo=datatable-transitions',
+                dataSrc: "data"
+            },
+            columns: [
+                { data: "quien_ingresa__get_full_name",
+                },
+                { data: "quien_sale__get_full_name",
+                },
+                { "data": "contrato_sale.cargo.area.estructura.descripcion" },
+                { "data": "contrato_sale.cargo.area.descripcion" },
+                { "data": "motivo" },
+                { "data": "fecha_inicio" },
+                { "data": "fecha_fin" },
+                { "data": "dias" },
+                { "data": "contrato_sale.fecha_retiro",
+                    render: function(data, type, row, meta){
+                        console.log()
+                        return data == 'None'? "" : data;
+                    }
+                },
+                { "data": "dias_reales" },
+            ],
+            columnDefs: [
+                {targets:[1,2,3],className: 'text-center'},
+            ],
+            buttons: [
+                'copy', 'excel', 'pdf'
+            ],
+            layout: {
+                topStart: {
+                    buttons: [
+                        'copy','excel','pdf',
+                            {
+                                text: 'Incluir completados',
+                                action: function (e, dt, node, config) {
+                                    if (this.text() == 'Incluir completados'){
+                                        this.text('Ver activos');
+                                        url = window.location.href+'?todo=datatable-transitions&type=completed'
+                                        dt.ajax.url(url).load()
+                                    }
+                                    else {
+                                        this.text('Incluir completados');
+                                        url = window.location.href+'?todo=datatable-transitions&type=active'
+                                        dt.ajax.url(url).load()
+                                    }
+                                }
+                            },
+                        ]
+                },
+                top1: 'searchBuilder'
+            },
+            language: {
+                searchBuilder: {
+                    add: '+',
+                    condition: 'Condición',
+                    clearAll: 'Reiniciar',
+                    delete: 'Borrar',
+                    deleteTitle: 'Borrar titulo',
+                    data: 'Columna',
+                    left: 'Desagrupar',
+                    leftTitle: 'Desagrupar',
+                    logicAnd: 'Y',
+                    logicOr: 'O',
+                    right: 'Agrupar',
+                    rightTitle: 'Agrupar',
+                    button: 'Filtros',
+                    title: {
+                        0: 'Filtro',
+                        _: 'Filtros (%d)'
+                    },
+                    value: 'Opción',
+                    valueJoiner: 'es'
+                }
+            },
+        
+        })
+        
+        /* Modals */
+        /* Dropdowns */
+        /* Buttons */
+    });
+</script>
+{%endblock%}
+{%block style%}
+<link rel="stylesheet" href="https://cdn.datatables.net/2.1.6/css/dataTables.semanticui.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/searchbuilder/1.8.0/css/searchBuilder.semanticui.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.1.2/css/buttons.dataTables.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/datetime/1.5.3/css/dataTables.dateTime.min.css">
+<link rel="stylesheet" href="{%static 'css/hrnotifications.css'%}">
+<style>
+  th {
+    text-align:center!important;
+  }
+  td {
+    font-size: x-small;
+  }
+  tbody{
+    cursor: pointer;
+  }
+
+  .sticky{
+    position: sticky!important;
+    top:0!important;
+  }
+
+  .text-center {
+    text-align: center!important;
+  }
+</style>
+{%endblock%}

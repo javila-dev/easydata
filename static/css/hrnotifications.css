@@ -1,0 +1,16 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap');
+ul.notifications{
+font-size: small;
+margin-top: 0;
+padding-left: 14px;
+}
+p.notifications{
+margin-bottom: 0;
+}
+.toast-box{
+    width:400px!important;
+}
+.ui.toast{
+    width: 100%!important;
+}

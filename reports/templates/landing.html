@@ -1,0 +1,278 @@
+{%extends 'base.html'%}{%load static%}
+{%block submenu%}
+<a class="item" id="btn-modal-report">Gastos</a>
+<a class="item" id="btn-modal-report">Informe</a>
+<a class="item" id="btn-analyze-expenses">Analizar</a>
+{%endblock%}
+{%block content%}
+<div class="ui stackable grid" style="height: 100%!important;">
+  <div class="center aligned row">
+    <div class="ui three column doubling stackable grid container" style="height: auto;">
+      <div class="center aligned column">
+        <button class="ui huge inverted icon button" id="btn-check-expenses">            
+          <lord-icon
+              src="https://cdn.lordicon.com/ccwgfhfg.json"
+              trigger="hover"
+              colors="outline:#121331,primary:#92140c,secondary:#4bb3fd,tertiary:#ebe6ef"
+              style="width:70px;height:70px">
+          </lord-icon><br>
+          Datos</button>
+      </div>
+      <!-- <div class="center aligned column">
+        <button class="ui huge inverted icon button" id="btn-analyze-expenses">            
+          <lord-icon
+            src="https://cdn.lordicon.com/osbjlbsb.json"
+            trigger="hover"
+            colors="outline:#121331,secondary:#b26836,secondary2:#4bb3fd,quaternary:#ebe6ef"
+            style="width:70px;height:70px">
+        </lord-icon><br>
+          Analizar</button>
+      </div> -->
+      <!-- <div class="center aligned column">
+        <button class="ui huge inverted icon button" id="btn-modal-report">            
+          <lord-icon
+              src="https://cdn.lordicon.com/qtqvorle.json"
+              trigger="hover"
+              colors="outline:#121331,primary:#646e78,secondary:#ebe6ef,tertiary:#4cb4fd"
+              style="width:70px;height:70px">
+          </lord-icon><br>
+          Generar</button>
+      </div> -->
+    </div>
+  </div>
+  <div class="bottom aligned row" style="padding-left: 1rem;padding-right: 1rem;">
+    <!-- TradingView Widget BEGIN -->
+      <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container__widget"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-tickers.js" async>
+        {
+        "symbols": [
+        
+          {
+            "description": "COP a EUR",
+            "proName": "FX_IDC:EURCOP"
+          },
+          {
+            "description": "COP a USD",
+            "proName": "FX_IDC:USDCOP"
+          },
+          {
+            "description": "USD a EUR",
+            "proName": "FX_IDC:EURUSD"
+          },{
+            "description": "NUTRESA",
+            "proName": "BVC:NUTRESA"
+          }
+        ],
+        "colorTheme": "dark",
+        "isTransparent": true,
+        "showSymbolLogo": true,
+        "locale": "es"
+      }
+        </script>
+      </div>
+    </div>
+</div>
+
+<div class="ui tiny modal" id="modal-generate-report">
+  <i class="close icon"></i>
+  <div class="header">
+    Generar Informe
+  </div>
+  <div class="content">
+    <div class="ui form">
+      <div class="fields">
+        <div class="six wide field">
+          <label>Area</label>
+          <select name="area-report" id="id-area-report" class="ui dropdown" required>
+            <option value="TODAS">TODAS</option>
+            {%for area in areas%}
+            <option value="{{area.nombre_area}}">{{area.nombre_area}}</option>
+            {%endfor%}
+          </select>
+        </div>
+        <div class="six wide field">
+          <label>Mes</label>
+          <select name="month-report" id="id-month-report" class="ui dropdown" required>
+            <option value="">Selecciona...</option>
+            <option value="1">Enero</option>
+            <option value="2">Febrero</option>
+            <option value="3">Marzo</option>
+            <option value="4">Abril</option>
+            <option value="5">Mayo</option>
+            <option value="6">Junio</option>
+            <option value="7">Julio</option>
+            <option value="8">Agosto</option>
+            <option value="9">Septiembre</option>
+            <option value="10">Octubre</option>
+            <option value="11">Noviembre</option>s
+            <option value="12">Diciembre</option>
+          </select>
+        </div>
+        <div class="four wide field">
+          <label>Año</label>
+          <input required type="number" min="2010" max="2999" name="year-report" id="id-year-report" class="text-center">
+        </div>
+      </div>
+      <div class="ui toggle checked checkbox" id="id_include_acumulative" style="margin-top: 1.5rem;">
+        <input type="checkbox" checked="" name="include_acumulative">
+        <label>Incluir acumulado anual</label>
+      </div>
+      <div class="ui toggle checkbox" id="id_include_previous_year" style="margin-left: 1.5rem;">
+        <input type="checkbox"tabindex="0" name="include_previous_year">
+        <label>Comparativo año anterior</label>
+      </div>
+      <div class="ui toggle checkbox" id ="id_include_details" style="margin-top: 1.5rem;">
+        <input type="checkbox" tabindex="0" name="include_details">
+        <label>Incluir detalle de gastos</label>
+      </div>
+    </div>    
+  </div>
+  <div class="actions">
+    <button id="btn-generate-report" class="ui positive right labeled icon button">
+      Generar
+      <i class="checkmark icon"></i>
+    </button>
+  </div>
+</div>
+
+<div class="ui tiny modal" id="modal-look-expenses">
+  <i class="close icon"></i>
+  <div class="header">
+    Fechas para analizar
+  </div>
+  <div class="content">
+    <div class="ui form">
+      <div class="fields">
+        <div class="eight wide field">
+          <label>Fecha desde</label>
+            <div class="ui inverted calendar" id="id_date_from_look">
+              <div class="ui input left icon">
+                <i class="calendar icon"></i>
+                <input type="text" name="date_from_look" placeholder="Desde" required 
+                  readonly style="cursor: pointer;">
+              </div>
+            </div>
+        </div>
+        <div class="eight wide field">
+          <label>Fecha hasta</label>
+            <div class="ui inverted calendar" id="id_date_to_look">
+              <div class="ui input left icon">
+                <i class="calendar icon"></i>
+                <input type="text" name="date_to_look" placeholder="Hasta" required 
+                  readonly style="cursor: pointer;">
+              </div>
+            </div>
+        </div>
+      </div>
+      
+    </div>    
+  </div>
+  <div class="actions">
+    <button id="btn-view-pivot" class="ui positive right labeled icon button">
+      Generar
+      <i class="checkmark icon"></i>
+    </button>
+  </div>
+</div>
+{%endblock%}
+{%block script%}
+<script src="{%static 'js/utils.js'%}"></script>
+<script src="https://cdn.lordicon.com/bhenfmcm.js"></script>
+<script>
+    $(document).ready(function(){
+      $('#id_date_from_look').calendar({
+            type: 'date',
+            firstDayOfWeek: 1,
+            text: calendar_spanish(),
+            endCalendar: $('#id_date_to_look'),
+            formatter:{
+              date: 'YYYY-MM-DD',
+            }
+          });
+      $('#id_date_to_look').calendar({
+        type: 'date',
+        firstDayOfWeek: 1,
+        text: calendar_spanish(),
+        startCalendar: $('#id_date_from_look'),
+        formatter:{
+          date: 'YYYY-MM-DD',
+        }
+      });
+      $('#modal-generate-report').modal({
+        onApprove: function(){
+          $("#btn-generate-report").addClass('loading disabled');
+          let month = $('#id-month-report').val()
+          let year = $('#id-year-report').val()
+          let area = $('#id-area-report').val()
+          let include_acumulate = $('#id_include_acumulative').checkbox('is checked')
+          let comparate_year = $('#id_include_previous_year').checkbox('is checked')
+          let include_details = $('#id_include_details').checkbox('is checked')
+
+          $.ajax({
+            type: "GET",
+            url: "/reports/landing",
+            data: {
+              'todo':'generate_report',
+              'month': month,
+              'year': year,
+              'area':area,
+              'include_acumulate': include_acumulate,
+              'comparate_year': comparate_year,
+              'include_details':include_details
+            },
+            success: function(data) {
+              console.log(data)
+              $.toast({
+                showIcon: 'bullhorn icon',
+                class: 'success',
+                displayTime: 0,
+                closeIcon: true,
+                message: `Hicimos muchos calculos y ya tenemos listo el reporte, descargalo <a class="ui white text" href="/media/${data.href}">aquí</a>`
+              })  
+            },
+            error: function(data) {
+              $.toast({
+                showIcon: 'bullhorn icon',
+                class: 'error',
+                displayTime: 'auto',
+                closeIcon: true,
+                message: `Upsi, tenemos problemas para cumplir tus ordenes :( avisale al admin.`
+              }) 
+            },
+            complete: function(data) {
+              $("#btn-generate-report").removeClass('loading disabled');
+            }
+          })
+          return false;
+        }
+      })
+        $('#btn-modal-report').click(function(){
+          $('#modal-generate-report').modal('show')
+          
+        });
+       $('#btn-analyze-expenses').click(function(){
+        $('#modal-look-expenses').modal('show')
+
+        })
+        $('#btn-check-expenses').click(function(){
+          window.location.href = '/reports/expenses/detail'
+        })
+        
+        $('#btn-view-pivot').click(function(){
+          $(this).addClass('disabled').addClass('loading')
+          let date_from = $('input[name="date_from_look"]').val()
+          let date_to = $('input[name="date_to_look"]').val()
+          window.location.href = `/reports/expenses/analyze/${date_from}/${date_to}`
+        })
+        
+    })
+</script>
+{%endblock%}
+{%block style%}
+<style>
+  .text-center {
+    text-align: center;
+  }
+</style>
+{%endblock%}

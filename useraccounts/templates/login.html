@@ -1,0 +1,104 @@
+{%load static%}<!DOCTYPE html>
+<html lang="es" >
+<head>
+  <meta charset="UTF-8">
+  <title>Easydata - Atlantic</title>
+  <link rel="icon" type="image/jpg" href="{%static 'img/just_logo_circle.png'%}"/>
+  <link rel="stylesheet" href="{%static 'css/login.css'%}">
+  <style>
+    body {
+        margin: 0;
+        padding: 0;
+    }
+    .overlay {
+        position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+    }
+    
+    .atlantic-loader {
+        width: 70px;
+        height: 70px;
+        background: url('/static/img/atlantic_gold - copia.png') no-repeat center center;
+        background-size: contain;
+        animation: spin 2s infinite linear;
+    }
+    
+    .overlay.active {
+        display: flex;
+    }
+    
+    @keyframes spin {
+        0% {
+            transform: rotateY(0deg);
+        }
+        100% {
+            transform: rotateY(360deg);
+        }
+    }
+   </style>
+</head>
+<body>
+    <div class="overlay" id="app-loader">
+        <div class="atlantic-loader"></div>
+    </div>
+    
+    <div class="container" id="container">
+        <div class="form-container sign-up">
+            <form type="POST" id="form-reset-pwd">{%csrf_token%}
+                <h1>Reestablecer contraseña</h1><br>
+                <input type="email" placeholder="Email" name="email" id="emailforreset">
+                <p id="reset-result"></p>
+                <button type="submit" id="bntrstpwd">Solicitar</button>
+            </form>
+        </div>
+        <div class="form-container sign-in">
+            <form method="post" id="form-signin">{%csrf_token%}
+                <h1 style="margin-bottom: 2rem;">Ingresa</h1>
+                <input type="text" placeholder="Usuario" required name="user" class="{% if error %}shake-horizontal{% endif %}">
+                <input type="password" placeholder="Contraseña" required name="password"
+                        class="{% if error %}shake-horizontal{% endif %}">
+                {%if error %}<p style="color: lightcoral;">{{message}}</p>{%endif%}
+                <a href="#" id="forgot-pwd">¿Olvidaste tu contraseña?</a>
+                <button type="submit" id="login">Ingresar</button>
+            </form>
+        </div>
+        <div class="toggle-container">
+            <div class="toggle">
+                <div class="toggle-panel toggle-left">
+                    <img width="80%" style="margin-bottom:2rem;" src="{%static 'img/logo_blanco.png'%}">
+                    <h1>¿Olvidaste tu contraseña?</h1>
+                    <p>Ingresa tu información para ayudarte a reestablecer tu contraseña</p>
+                    <button class="hidden" id="go-to-login">Regresar</button>
+                    <img width="30%" style="margin-top:2rem;" src="https://info.atlantic.la/wp-content/uploads/2016/06/atlantic.png">
+                </div>
+                <div class="toggle-panel toggle-right">
+                    <img width="80%" style="margin-bottom:2.5rem;" src="{%static 'img/logo_blanco.png'%}">
+                    <h1>Bienvenido</h1>
+                    <p>!Nos alegra que estés de vuelta!</p>
+                    <img width="30%" style="margin-top:3rem;" src="https://info.atlantic.la/wp-content/uploads/2016/06/atlantic.png">
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{%static 'js/utils.js'%}"></script>
+    <script src="{%static 'js/login.js'%}"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+              window.addEventListener('load', () => {
+                  navigator.serviceWorker.register('/static/js/service-worker.js')
+                      .then((reg) => console.log('Service Worker registrado', reg))
+                      .catch((err) => console.log('Service Worker fallo', err));
+              });
+        }
+      </script>
+</body>
+</html>

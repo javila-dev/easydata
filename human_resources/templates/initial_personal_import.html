@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block submenu %}
+    <a class="item" href="/humanresources/landing/">
+      <i class="home icon"></i>
+    </a>
+    <a class="item" href="/humanresources/workers">Detalle personal</a>
+    <a class="item active" href="/humanresources/initial-import/">Carga inicial</a>
+    <a class="item" href="/humanresources/parameters">Parametros</a>
+{% endblock %}
+
+{% block content %}
+<div class="ui stackable grid">
+  <div class="ten wide column">
+    <div class="ui segment">
+      <h2 class="ui header">Carga inicial de personal</h2>
+      <p>Esta vista está pensada para importaciones grandes con seguimiento de progreso. Usa el mismo motor de importación, pero en segundo plano.</p>
+
+      <form class="ui form" id="initial-import-form">
+        {% csrf_token %}
+        <div class="field">
+          <label>Archivo Excel</label>
+          <input type="file" name="archivo_importar" accept=".xlsx,.xls" required>
+        </div>
+        <div class="ui buttons">
+          <button type="submit" class="ui primary button" id="btn-start-import">Iniciar carga</button>
+          <div class="or"></div>
+          <button type="button" class="ui button" id="btn-download-import-template">Descargar formato</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="ui segment hidden" id="job-panel">
+      <div class="ui top attached clearing basic segment" style="padding-left:0;padding-right:0;">
+        <h3 class="ui left floated header" id="job-title">Importación en curso</h3>
+        <div class="ui right floated label" id="job-status-label">PENDING</div>
+      </div>
+
+      <div class="ui indicating progress" id="job-progress" data-percent="0">
+        <div class="bar"></div>
+        <div class="label">Esperando inicio...</div>
+      </div>
+
+      <div class="ui four statistics mini">
+        <div class="statistic">
+          <div class="value" id="stat-processed">0</div>
+          <div class="label">Procesadas</div>
+        </div>
+        <div class="statistic">
+          <div class="value" id="stat-created">0</div>
+          <div class="label">Creados</div>
+        </div>
+        <div class="statistic">
+          <div class="value" id="stat-updated">0</div>
+          <div class="label">Actualizados</div>
+        </div>
+        <div class="statistic">
+          <div class="value" id="stat-omitted">0</div>
+          <div class="label">Omitidos</div>
+        </div>
+      </div>
+
+      <div class="ui four statistics mini">
+        <div class="statistic">
+          <div class="value" id="stat-conflicts">0</div>
+          <div class="label">Conflictos</div>
+        </div>
+        <div class="statistic">
+          <div class="value" id="stat-errors">0</div>
+          <div class="label">Errores</div>
+        </div>
+        <div class="statistic">
+          <div class="value" id="stat-noimport">0</div>
+          <div class="label">No importables</div>
+        </div>
+        <div class="statistic">
+          <div class="value" id="stat-ignored">0</div>
+          <div class="label">Ignoradas</div>
+        </div>
+      </div>
+
+      <div class="ui hidden message" id="job-error-box"></div>
+
+      <div class="ui styled fluid accordion">
+        <div class="title active"><i class="dropdown icon"></i>Conflictos y errores</div>
+        <div class="content active">
+          <div id="job-details"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="six wide column">
+    <div class="ui segment">
+      <h3 class="ui header">Importaciones recientes</h3>
+      <table class="ui compact celled table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Archivo</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in jobs %}
+          <tr>
+            <td>{{ job.fecha_creacion|date:"Y-m-d H:i" }}</td>
+            <td>{{ job.nombre_archivo }}</td>
+            <td>{{ job.status }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="3" class="center aligned">Sin importaciones registradas</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+  $(document).ready(function () {
+    let pollingHandle = null;
+
+    $('.ui.accordion').accordion();
+    $('#job-progress').progress({ percent: 0 });
+
+    function renderItems(title, items, formatter) {
+      if (!items || items.length === 0) {
+        return '';
+      }
+      const rows = items.map(formatter).join('');
+      return `
+        <div class="ui segment">
+          <strong>${title}</strong>
+          <div class="ui relaxed divided list" style="margin-top:0.75rem;">
+            ${rows}
+          </div>
+        </div>
+      `;
+    }
+
+    function updateJobView(data) {
+      $('#job-panel').removeClass('hidden');
+      $('#job-title').text(`Importación #${data.job_id} - ${data.nombre_archivo}`);
+      $('#job-status-label').text(data.status);
+
+      const total = data.filas_importables || data.total_filas || 0;
+      const processed = data.filas_procesadas || 0;
+      const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
+      const label = total > 0
+        ? `${processed} de ${total} filas importables procesadas`
+        : 'Preparando archivo...';
+
+      $('#job-progress').progress({
+        percent: percent,
+        text: {
+          active: label,
+          success: 'Importación finalizada',
+          error: 'Importación con error'
+        }
+      });
+      $('#job-progress .label').text(label);
+
+      $('#stat-processed').text(processed);
+      $('#stat-created').text(data.creados || 0);
+      $('#stat-updated').text(data.actualizados || 0);
+      $('#stat-omitted').text(data.omitidos || 0);
+      $('#stat-conflicts').text(data.conflictos || 0);
+      $('#stat-errors').text(data.errores || 0);
+      $('#stat-noimport').text(data.no_importables || 0);
+      $('#stat-ignored').text(data.ignoradas || 0);
+
+      if (data.status === 'FAILED') {
+        $('#job-error-box')
+          .removeClass('hidden success warning')
+          .addClass('error')
+          .text(data.mensaje_error || 'La importación falló.');
+      } else {
+        $('#job-error-box').addClass('hidden').removeClass('error success warning').empty();
+      }
+
+      const detailsHtml = [
+        renderItems('Conflictos', data.detalles_conflicto, (item) => `
+          <div class="item">
+            <div class="content">Fila ${item.fila} - ID ${item.id}: ${item.motivo}</div>
+          </div>
+        `),
+        renderItems('Errores', data.detalles_error, (item) => `
+          <div class="item">
+            <div class="content">Fila ${item.fila} - ID ${item.id}: ${item.error}</div>
+          </div>
+        `),
+        renderItems('No importables', data.detalles_no_importables, (item) => `
+          <div class="item">
+            <div class="content">Fila ${item.fila} - ID ${item.id}: ${(item.issues || []).join(', ')}</div>
+          </div>
+        `)
+      ].join('');
+      $('#job-details').html(detailsHtml || '<div class="ui message">Sin incidencias registradas por ahora.</div>');
+
+      if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+        if (pollingHandle) {
+          clearInterval(pollingHandle);
+          pollingHandle = null;
+        }
+      }
+    }
+
+    function startPolling(jobId) {
+      if (pollingHandle) {
+        clearInterval(pollingHandle);
+      }
+
+      const poll = function () {
+        $.ajax({
+          url: `/humanresources/initial-import/status/${jobId}`,
+          type: 'GET',
+          success: function (response) {
+            updateJobView(response);
+          },
+          error: function () {
+            if (pollingHandle) {
+              clearInterval(pollingHandle);
+              pollingHandle = null;
+            }
+          }
+        });
+      };
+
+      poll();
+      pollingHandle = setInterval(poll, 2000);
+    }
+
+    $('#initial-import-form').submit(function (e) {
+      e.preventDefault();
+      const form = this;
+      const formData = new FormData(form);
+
+      $('#btn-start-import').addClass('loading disabled');
+      $('#job-panel').removeClass('hidden');
+      $('#job-status-label').text('PENDING');
+      $('#job-details').html('<div class="ui message">Creando trabajo de importación...</div>');
+
+      $.ajax({
+        url: '/humanresources/initial-import/start',
+        type: 'POST',
+        data: formData,
+        contentType: false,
+        processData: false,
+        headers: {
+          'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+        },
+        success: function (response) {
+          form.reset();
+          startPolling(response.job_id);
+        },
+        error: function (xhr) {
+          const message = xhr.responseJSON && xhr.responseJSON.error
+            ? xhr.responseJSON.error
+            : 'No fue posible iniciar la importación.';
+          $('#job-error-box').removeClass('hidden').addClass('error').text(message);
+        },
+        complete: function () {
+          $('#btn-start-import').removeClass('loading disabled');
+        }
+      });
+    });
+
+    $('#btn-download-import-template').click(function () {
+      const button = $(this);
+      button.addClass('loading disabled');
+      $.ajax({
+        url: '/humanresources/masivecreatepartner',
+        type: 'GET',
+        data: { todo: 'export-file' },
+        success: function (response) {
+          window.open(response.url, '_blank');
+        },
+        complete: function () {
+          button.removeClass('loading disabled');
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

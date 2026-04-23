@@ -1,0 +1,823 @@
+{%extends 'base.html'%}{%load static%} {%block submenu%}
+<a class="item active" href="/humanresources/landing/">
+  <i class="home icon"></i>
+</a>
+<a class="item" href="/humanresources/workers">Detalle personal</a>
+<a class="item" href="/humanresources/transitions">Empalmes</a>
+<a class="item" href="/humanresources/parameters">Parametros</a>
+<a class="item" href="/humanresources/historial">Historial</a>
+{%endblock%} {% block content %}
+<div id="container" class="highcharts-light">
+  <div class="row">
+      <div class="cell" id="current-sprint-kpi">
+          <div class="row" id="current-sprint-1">
+              <div class="cell" id="dashboard-kpi-1" style="height: 140px;"></div>
+              <div class="cell" id="dashboard-freepositions" style="height: 140px;"></div>
+          </div>
+          <div class="row" id="current-sprint-2">
+            <div class="cell" id="dashboard-kpi-2" style="height: 140px;"></div>
+        </div>
+        <div class="row" id="current-sprint-3">
+            <div class="cell" id="HC-dependency" style="width: 100%;"></div>
+        </div>
+      </div>
+      <div class="cell" id="cell-2">
+        <div class="row">
+            <div class="cell" id="gender-donut" style="width: 100%; height: 200px;"></div>
+        </div>
+        <div class="row">
+            <div class="cell" id="contract-type" style="width: 100%;height: 160px"></div>
+        </div>
+        <div class="row">
+            <div class="cell" id="salary-group" style="width: 100%;height: 220px"></div>
+        </div>
+      </div>
+      <div class="cell" id="dashboard-map"></div>
+  </div>
+</div>
+{%endblock%}
+{%block script%}
+<script src="{%static 'js/Highcharts/highcharts.js'%}"></script>
+<script src="{%static 'js/Highcharts/dashboards.js'%}"></script>
+
+<script src="{%static 'js/hrnotifications.js'%}"></script>
+<script>
+    const plotLines = [{
+        label: {
+            text: 'Today',
+            align: 'left',
+            rotation: 0,
+            y: 0
+        },
+        value: Date.UTC(2023, 5, 2),
+        zIndex: 7
+    }];
+    const chartOptions = {
+        chart: {
+            animation: false,
+            type: 'column'
+        },
+        credits: {
+            enabled: false
+        },
+        title: {
+            text: 'allowConnectorUpdate: true'
+        },
+        subtitle: {
+            text: 'Drag points to update the data grid'
+        },
+        accessibility: {
+            point: {
+                descriptionFormat: 'Vitamin A content in {name}: {y} micrograms.'
+            },
+            description: `The first bar chart uses some example data to present
+            the ability to edit the connector values by manually changing the height
+            of the bars in the series, which is possible with allowConnectorUpdate
+            option set to true.`
+        },
+        tooltip: {
+            stickOnContact: true,
+            valueSuffix: ' mcg'
+        },
+        yAxis: {
+            title: {
+                text: ''
+            },
+            accessibility: {
+                description: 'amount of Vitamin A in micrograms'
+            }
+        },
+        legend: {
+            enabled: false
+        },
+        plotOptions: {
+            series: {
+                colorByPoint: true,
+                dragDrop: {
+                    draggableY: true,
+                    dragPrecisionY: 1
+                }
+            }
+        }
+    };
+    function shuffleArray(array) {
+        return array
+            .map(value => ({ value, sort: Math.random() }))
+            .sort((a, b) => a.sort - b.sort)
+            .map(({ value }) => value);
+    }
+
+    const colors_palette = ['#3A1B68','#FFD369','#393E46','#5BD3C7','#E2F6D5'];
+
+    let colors, colors_2;
+
+    do {
+        colors = shuffleArray(colors_palette);
+        colors_2 = shuffleArray(colors_palette);
+    } while (JSON.stringify(colors) === JSON.stringify(colors_2));
+
+
+    function showDashboardLoadError(message) {
+        const container = document.getElementById('container');
+        if (!container) return;
+        container.innerHTML = `<div class="ui negative message"><div class="header">No se pudo cargar el dashboard de Gestion Humana</div><p>${message}</p></div>`;
+    }
+
+    if (!window.Highcharts || !window.Dashboards) {
+        showDashboardLoadError('Faltan librerias del dashboard. Recarga la pagina o revisa la disponibilidad de los recursos estaticos.');
+    } else {
+        Highcharts.setOptions({
+            credits: {
+                enabled: false
+            },
+            title: {
+                text: ''
+            },
+            accessibility: {
+                enabled: false
+            }
+        });
+    async function run() {
+        const board = Dashboards.board('container', {
+        dataPool: {
+            connectors: [{
+                type: 'JSON',
+                id: 'HRData',
+                options: {
+                    firstRowAsNames: true,
+                    dataUrl: '/humanresources/dashboard/?todo=getHRdata'
+                }
+                },{
+                type: 'JSON',
+                id: 'positionsData',
+                options: {
+                    firstRowAsNames: true,
+                    dataUrl: '/humanresources/dashboard/?todo=getpositionsData'
+                }
+                },
+            ]
+        },
+        components: [
+        {renderTo: 'dashboard-kpi-1',
+            type: 'KPI',
+            title: 'Total empleados',
+            linkedValueTo: {
+                enabled: false
+            }
+        }, 
+        {renderTo: 'dashboard-kpi-2',
+            type: 'KPI',
+            title: 'Total salarios basicos',
+            subtitle: false,
+            linkedValueTo: {
+                enabled: false
+            }
+        }, 
+        {renderTo: 'gender-donut',
+            type: 'Highcharts',
+            title: 'HC por genero',
+            connector: {
+                id: 'HRData',
+                columnAssignment: []
+            },
+            chartOptions: {
+                series: [{
+                    type: 'pie',
+                    innerSize: '30%',
+                    size: '110%',
+                    showInLegend: true,
+                    borderRadius: 2,
+                    colors: colors_2,
+                    dataLabels: {
+                        enabled: true,
+                        format: '{point.name}: {point.percentage:,.1f}%'
+                    }
+                }],
+                legend: false,
+                tooltip: {
+                    headerFormat: '',
+                    pointFormat: '<span style="color:{point.color}">\u25CF</span> <b> ' +
+                    '{point.name}</b><br/>' +
+                    'Cantidad: <b>{point.y}</b><br/>' +
+                    'Salarios: <b>{point.z}</b><br/>',
+                    pointFormatter:function(){
+                        const {name, y, z} = this;
+                        point = `<span style="color:{point.color}">\u25CF</span> <b>
+                        ${name}</b><br/>
+                        Cantidad: <b>${y}</b><br/>
+                        Salarios: <b>${(z/1e6).toFixed(2)}</b> Millones</b><br/>`;
+                        return point
+                    }
+                },
+                responsive: {
+                    rules: [{
+                        condition: {
+                            maxWidth: 450
+                        },
+                        chartOptions: {
+                            legend: {
+                                align: 'center',
+                                verticalAlign: 'bottom',
+                                layout: 'horizontal'
+                            }
+                        }
+                    }]
+                },
+            }
+        },
+        {renderTo: 'dashboard-map',
+            type: 'Highcharts',
+            title: 'HC por ubicacion',
+            connector: {
+                id: 'HRData',
+                columnAssignment: []
+            },
+            chartOptions: {
+                chart: {
+                    type: 'bar'
+                },
+                xAxis: {
+                    categories: []
+                },
+                yAxis: {
+                    min: 0,
+                    title: {
+                        text: ''
+                    }
+                },
+                legend: false,
+                series: [{
+                    name: 'Sede',
+                    data: [],
+                    color: colors[1]
+                }]
+            }
+        },
+        {renderTo: 'dashboard-freepositions',
+            type: 'KPI',
+            title: 'Total vacantes',
+            subtitle: false,
+            connector: {
+                id: 'positionsData',
+                columnAssignment: []
+            },
+            linkedValueTo: {
+                enabled: false
+            }
+        }, 
+        {renderTo: 'HC-dependency',
+            type: 'Highcharts',
+            title: 'HC por Gerencia',
+            connector: {
+                id: 'HRData',
+                columnAssignment: []
+            },
+            chartOptions: {
+
+                series: [{
+                    type: 'pie',
+                    colors: colors,
+                    innerSize: '60%',
+                    size: '80%',
+                    showInLegend: true,
+                    dataLabels: {
+                        enabled: true,
+                        format: '{point.name} {point.percentage:,.1f}%',
+                        distance: 10
+                    }
+                }],
+                legend: false,
+                tooltip: {
+                    headerFormat: '',
+                    pointFormat: '<span style="color:{point.color}">\u25CF</span> <b> ' +
+                    '{point.name}</b><br/>' +
+                    'Cantidad: <b>{point.y}</b><br/>' +
+                    'Salarios: <b>{point.z}</b><br/>',
+                    pointFormatter:function(){
+                        const {name, y} = this;
+                        point = `<span style="color:{point.color}">\u25CF</span> <b>
+                        ${name}</b><br/>
+                        Cantidad: <b>${y}</b><br/>`;
+                        return point
+                    }
+                },
+                responsive: {
+                    rules: [{
+                        condition: {
+                            maxWidth: 450
+                        },
+                        chartOptions: {
+                            legend: {
+                                align: 'center',
+                                verticalAlign: 'bottom',
+                                layout: 'vertical'
+                            }
+                        }
+                    }]
+                },
+            }
+        },
+        {renderTo: 'contract-type',
+            type: 'Highcharts',
+            title: 'HC por tipo de contrato',
+            connector: {
+                id: 'HRData',
+                columnAssignment: []
+            },
+            chartOptions: {
+                series: [{
+                    type:'bar',
+                    colors:colors_2[3],
+                    colorKey: 'y',
+                }],
+                
+                title: false,
+                xAxis: {
+                    categories: ['Directo', 'Temporal', 'Aprendizaje'],
+                    title: {
+                        text: null
+                    },
+                    gridLineWidth: 1,
+                    lineWidth: 0
+                },
+                yAxis: {
+                    min: 0,
+                    title: {
+                        enabled:false
+                    },
+                    labels: {
+                        overflow: 'justify'
+                    },
+                    gridLineWidth: 0
+                },
+                plotOptions: {
+                    bar: {
+                        borderRadius: '80%',
+                        dataLabels: {
+                            enabled: true
+                        },
+                        groupPadding: 0.1
+                    }
+                },
+                legend: false,
+                credits: {
+                    enabled: false
+                },
+            }
+        },
+        {renderTo: 'salary-group',
+            type: 'Highcharts',
+            title: 'HC por grupo salarial',
+            connector: {
+                id: 'HRData',
+                columnAssignment: []
+            },
+            chartOptions: {
+                colorAxis: {
+                    min: 0,
+                    title: {
+                        text: ''
+                    }
+                },
+                xAxis: {
+                    categories: []
+                },
+                series: [{
+                    type: 'bar',
+                    data: [],
+                    color: colors[2],
+                }],
+                legend: {
+                    align: 'right',
+                    layout: 'vertical',
+                    margin: 10,
+                    y: -20,
+                    symbolHeight: 140,
+                    reversed:true,
+                    verticalAlign: 'top',
+                    title: {
+                        text: 'Salarios <br>(en Millones)'
+                    },
+                    navigation:{
+                        enabled:false
+                    }
+                },
+                tooltip:{
+                    pointFormatter:function(){
+                        const {name, value, colorValue} = this;
+                        point = `<span style="color:{point.color}">\u25CF</span> <b>
+                        ${name}</b><br/>
+                        HC: <b>${value}</b><br/>
+                        Total salarios: <b>${this.custom.totalSalario} Millones</b><br/>`;
+                        return point
+                    }
+                }
+                
+            }
+        },
+        
+    ],}, true)
+
+    board.then(dashboard => {
+        const HCtotal = dashboard.mountedComponents[0].component,
+        TotalSalary = dashboard.mountedComponents[1].component,
+        genderUpdate = dashboard.mountedComponents[2].component,
+        HCubication = dashboard.mountedComponents[3].component,
+        vacants = dashboard.mountedComponents[4].component,
+        HCdependency = dashboard.mountedComponents[5].component,
+        contractType = dashboard.mountedComponents[6].component,
+        salaryGroup = dashboard.mountedComponents[7].component,
+        connectors = dashboard.dataPool.connectors,
+        HRData = connectors.HRData.table.columns,
+        PosData = connectors.positionsData.table.columns,
+        dependecies = [], datamap = [], ranks = []
+        ;
+
+        if (!HRData || !HRData.nombre || !PosData || !PosData.diferencia) {
+            showDashboardLoadError('No se pudieron leer los datos del dashboard de Gestion Humana.');
+            return;
+        }
+
+        Mgender = 0; VMgender = 0; Fgender = 0; VFgender = 0
+        for (let i = 0; i < HRData.nombre.length; i++) {
+        if (HRData.sexo[i] == 'M') { Mgender += 1; VMgender += HRData.salario_base[i]}
+        else {Fgender += 1;VFgender += HRData.salario_base[i]}
+        }
+
+        HRData.map_sede.forEach(function(element){
+            let condition = (x) => x[0] == element;
+            let exists = datamap.find(condition)
+            if (!exists) {
+                datamap.push([element, 1])
+            }
+            else{
+                index = datamap.findIndex(condition)
+                datamap[index][1] += 1
+            }
+        });
+        
+        HRData.rango_salario.forEach(function(element,index){
+            let condition = (x) => x['name'] == element;
+            let exists = ranks.find(condition)
+            salario = HRData.salario_base[index]/1e6
+            if (!exists) {
+                ranks.push({
+                    name:element,
+                    value: 1,
+                    colorValue: salario
+                })
+            }
+            else{
+                i = ranks.findIndex(condition)
+                ranks[i]['value'] += 1
+                ranks[i]['colorValue'] += salario
+            }
+            i = ranks.findIndex(condition)
+            ranks[i]['colorValue'] = Math.round(ranks[i]['colorValue']*100)/100
+        });
+        D = 0; T = 0; A = 0;
+        HRData.tipo_ingreso.forEach(function(element){
+            D += element == 'V' ? 1 : 0; 
+            T += element == 'T' ? 1 : 0;
+            A += element == 'A' ? 1 : 0;
+        })
+        HRData.dependencia.forEach(function(element){
+            let condition = (x) => x[0] == element;
+            let exists = dependecies.find(condition)
+            if (!exists) {
+                dependecies.push([element, 1])
+            }
+            else{
+                index = dependecies.findIndex(condition)
+                dependecies[index][1] += 1
+            }
+        });
+
+        vacancydifference = PosData.diferencia.reduce((a,b)=>{return a+b})
+        color = vacancydifference > 0 ? 'yellow' : 'red'
+        color = vacancydifference == 0 ? 'green' : color
+        
+        total_salary = HRData.salario_base.reduce((a,b)=>{return a+b})/1e6
+        TotalSalary.setValue('<i class="dollar sign icon"></i>'+total_salary.toFixed(2)+' M')
+        HCtotal.setValue('<i class="users icon"></i> '+HRData.sexo.length);
+        vacants.setValue(`<i class="walking ${color} icon"></i> <span class="ui text ${color}">${vacancydifference}`);
+        genderUpdate.chart.series[0].update({
+            data: [
+                ['Hombres', Mgender,VMgender],
+                ['Mujeres', Fgender,VFgender],
+            ],
+        });
+        HCubication.chart.xAxis[0].setCategories(datamap.map(function(item){ return item[0] || 'Sin sede'; }));
+        HCubication.chart.series[0].update({
+            data: datamap.map(function(item){ return item[1]; })
+        });
+        HCdependency.chart.series[0].update({
+            data: dependecies
+        });
+        contractType.chart.series[0].update({
+            data: [
+                ['Directo', D],
+                ['Temporal', T],
+                ['Aprendizaje', A],
+            ],
+            color: colors[3]
+        })
+        salaryGroup.chart.xAxis[0].setCategories(ranks.map(function(item){ return item.name; }));
+        salaryGroup.chart.series[0].update({
+            data: ranks.map(function(item){
+                return {
+                    y: item.value,
+                    custom: { totalSalario: item.colorValue }
+                };
+            })
+        })
+
+    });
+}
+
+run().catch(function(error){
+    console.error(error);
+    showDashboardLoadError('Ocurrio un error inicializando el dashboard.');
+});
+    }
+</script>
+{%endblock%}
+{%block style%}
+<link rel="stylesheet" href="{%static 'css/hrnotifications.css'%}">
+<style>
+  /* @import url("https://code.highcharts.com/css/highcharts.css"); */
+  @import url("https://code.highcharts.com/dashboards/css/dashboards.css");
+
+:root,
+.highcharts-light {
+    /* Colors for data series and points */
+    --highcharts-color-0: #dfd9e9;
+    --highcharts-color-1: #ffbb07;
+    --highcharts-color-2: #727e8d;
+    --highcharts-color-3: #fc6556;
+    --highcharts-color-5: #404040;
+    --highcharts-neutral-color-100: #000;
+    --highcharts-neutral-color-5: #f2f2f2;
+    --highcharts-neutral-color-3: #f7f7f7;
+    --highcharts-neutral-color-0: #fff;
+
+    /* General */
+    --highcharts-background-color: #fff;
+
+    /* Extra colors */
+    --gray: #ccc;
+}
+
+#container {
+    background-color: var(--highcharts-neutral-color-5);
+    padding: 20px 10px;
+    position: relative;
+    border-radius: 10px;
+    height: 89.5vh;
+    overflow-y: auto;
+}
+
+.row {
+    display: flex;
+    position: relative;
+}
+
+.cell {
+    border: 1px solid transparent;
+    border-radius: 10px;
+    position: relative;
+    min-width: 20px;
+    height: 300px;
+}
+
+.highcharts-dashboards-component {
+    color: var(--highcharts-neutral-color-100);
+}
+
+.highcharts-dashboards-component-title {
+    font-size: 1.2em;
+    text-align: left;
+    margin: 1em;
+    margin-bottom: 0px;
+}
+
+.cell > .highcharts-dashboards-component {
+    position: relative;
+    background-color: var(--highcharts-background-color);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    margin: 5px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.dashboard-header .dashboard-title {
+    padding-top: 20px;
+}
+
+.dashboard-header .dashboard-title,
+.dashboard-header .dashboard-description {
+    background-color: var(--highcharts-neutral-color-5);
+    color: var(--highcharts-neutral-color-100);
+    margin: 0;
+    padding-left: 20px;
+}
+
+.highcharts-dashboards-component-kpi-content {
+    display: flex;
+    flex-direction: column;
+    margin-top:15px
+}
+
+.highcharts-dashboards-component.highcharts-dashboards-component-kpi-value {
+    font-size: 4em;
+    margin-top: 20px;
+}
+
+.highcharts-dashboards-component-kpi {
+    text-align: center;
+}
+
+.highcharts-dashboards-component-kpi-content .highcharts-dashboards-component-subtitle {
+    font-size: 1.4em;
+    margin-top: 20px;
+}
+
+#dashboard-kpi-3 .highcharts-dashboards-component .highcharts-point.highcharts-color-0 {
+    fill: var(--highcharts-neutral-color-100);
+}
+
+.highcharts-dashboards-component.highcharts-dashboards-component-kpi,
+.highcharts-dashboards-component.highcharts-dashboards-component-highcharts {
+    border-radius: 10px;
+}
+
+.highcharts-dashboards-component.highcharts-dashboards-component-kpi-chart-container .highcharts-background {
+    fill: transparent;
+}
+
+#dashboard-chart-1 .highcharts-point.highcharts-color-0,
+#dashboard-chart-2 .highcharts-color-0 {
+    fill: var(--highcharts-color-5);
+    stroke: var(--highcharts-color-5);
+}
+
+#dashboard-chart-2 .highcharts-grid-axis .highcharts-tick,
+#dashboard-chart-2 .highcharts-axis-line {
+    stroke-width: 0;
+}
+
+#dashboard-chart-2 .highcharts-data-label text {
+    fill: var(--highcharts-neutral-color-0);
+}
+
+.highcharts-plot-line {
+    stroke-width: 3px;
+    stroke: #f00;
+}
+
+.highcharts-plot-line-label {
+    fill: var(--highcharts-neutral-color-100);
+    font-size: 1em;
+    font-weight: bold;
+}
+
+#dashboard-kpi-1,
+#dashboard-kpi-2,
+#dashboard-freepositions,
+#cell-2,
+#gender-salario,
+#current-sprint-kpi {
+    flex: 1 1 50%;
+    height: 300pvx;
+}
+
+#dashboard-map{
+    flex: 1 1 50%;
+    height: 580px;
+}
+
+
+#dashboard-chart-2,
+#dashboard-chart-cumulative {
+    height: 350px;
+}
+
+#dashboard-chart-1 {
+    flex: 1 1 20%;
+}
+
+#dashboard-chart-2 {
+    flex: 1 1 60%;
+}
+
+#dashboard-chart-cumulative {
+    flex: 1 1 100%;
+}
+
+#salary-group figure,.highcharts-data-table table {
+    min-width: 200px;
+    max-width: 300px;
+    margin: 0 auto 1em auto!important;
+}
+
+.highcharts-treemap-series text {
+    fill: rgb(66 32 32)
+}
+
+.highcharts-data-table table {
+    font-family: Verdana, sans-serif;
+    border-collapse: collapse;
+    border: 1px solid #ebebeb;
+    margin: 10px auto;
+    text-align: center;
+    width: 100%;
+    max-width: 500px;
+}
+
+.highcharts-data-table caption {
+    padding: 1em 0;
+    font-size: 1.2em;
+    color: #555;
+}
+
+.highcharts-data-table th {
+    font-weight: 600;
+    padding: 0.5em;
+}
+
+.highcharts-data-table td,
+.highcharts-data-table th,
+.highcharts-data-table caption {
+    padding: 0.5em;
+}
+
+.highcharts-data-table thead tr,
+.highcharts-data-table tr:nth-child(even) {
+    background: #f8f8f8;
+}
+
+.highcharts-data-table tr:hover {
+    background: #f1f7ff;
+}
+
+.highcharts-dashboards-edit-sidebar{
+    width: 500px!important;
+}
+
+
+/* LARGE */
+@media (max-width: 1200px) {
+    #dashboard-kpi-1,
+    #dashboard-kpi-2,
+    #current-sprint-kpi,
+    #dashboard-kpi-4 {
+        flex: 1 1 50%;
+    }
+
+    #dashboard-chart-1 {
+        flex: 1 1 20%;
+    }
+
+    #dashboard-chart-2 {
+        flex: 1 1 60%;
+    }
+}
+
+
+/* MEDIUM */
+@media (max-width: 992px) {
+    .row {
+        flex-direction: column;
+    }
+
+    #current-sprint-kpi {
+        height: auto;
+    }
+
+    #current-sprint.row {
+        flex-direction: row;
+    }
+
+    #dashboard-kpi-1,
+    #dashboard-kpi-2 {
+        flex: 1 1 50%;
+    }
+
+    #dashboard-kpi-4,
+    #dashboard-chart-1,
+    #dashboard-chart-2,
+    #current-sprint-kpi {
+        flex: 1 1 100%;
+    }
+}
+
+/* MEDIUM */
+@media (max-width: 576px) {
+    #current-sprint,
+    #current-sprint.row {
+        flex-direction: column;
+        flex-wrap: wrap;
+    }
+}
+</style>
+{%endblock%}

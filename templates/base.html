@@ -1,0 +1,136 @@
+<!doctype html>{%load static%}
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Easydata - Atlantic</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.2/dist/semantic.min.css">
+    <link rel="icon" type="image/jpg" href="{%static 'img/just_logo_circle.png'%}"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pivottable/2.23.0/pivot.min.css" integrity="sha512-BDStKWno6Ga+5cOFT9BUnl9erQFzfj+Qmr5MDnuGqTQ/QYDO1LPdonnF6V6lBO6JI13wg29/XmPsufxmCJ8TvQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <style>
+      body {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          background-color: #f0f0f0;
+      }
+      .atlantic-loader {
+          width: 70px;
+          height: 70px;
+          background: url('/static/img/atlantic_gold - copia.png') no-repeat center center;
+          background-size: contain;
+          animation: spin 2s infinite linear;
+      }
+      
+      @keyframes spin {
+          0% {
+              transform: rotateY(0deg);
+          }
+          100% {
+              transform: rotateY(360deg);
+          }
+      }
+  </style>
+    {%block style%}{%endblock%}
+  </head>
+  <body>
+    <div class="ui dimmer" id="app-loader">
+      <div class="atlantic-loader"></div>
+      <!-- <div class="ui medium text teal loader">Cargando</div> -->
+    </div>
+    <div class="ui bottom attached segment pushable" id="maincontainer" style="margin-bottom: 0px;border-top-width: 0px;border-bottom-width: 0px;">
+      
+      <div class="ui left vertical visible inverted sidebar thin labeled icon menu">
+        <div class="ui basic segment" style="margin-bottom: 0px;">
+          <img class="ui centered medium image" src="https://info.atlantic.la/wp-content/uploads/2016/06/atlantic.png">
+        </div>
+        </h4>
+        <div class="ui horizontal list" style="margin-top: 0px;margin-bottom: 1rem;position: absolute;bottom: 1rem;left: 2rem;">
+          <div class="item">
+            <img class="ui mini circular image" src="/media/{{request.user.user_profile.avatar}}">
+            <div class="content">
+              <div class="ui sub grey header" style="color:white">{{request.user.first_name.capitalize}}</div>
+            </div>
+          </div>
+        </div>
+        <!-- <a class="item" href="/reports/expenses/detail">
+          <i class="donate icon"></i>
+          Gastos
+        </a> -->
+        <a class="item" href="/humanresources/landing/">
+          <i class="address card outline icon"></i>
+          Gestion Humana
+        </a>
+        <!-- <a class="item" href="/reports/landing">
+          <i class="chartline icon"></i>
+          Rolling
+        </a> -->
+        <a class="item" href="/accounts/users">
+          <i class="user icon"></i>
+          Usuarios
+        </a>
+        <a class="item" href="/admin" target="_blank">
+          <i class="cog icon"></i>
+          Configuracion
+        </a>
+      </div>
+      <div class="pusher" style="padding: 0px;">  
+        <div class="ui basic segment" style="height:100vh!important;width:calc(100vw - 150px);margin:0px;padding: 0px;">
+          <div class="ui inverted vertical masthead segment" style="padding: 0px;">
+              <div class="ui container" style="padding-bottom:5px;width: 100%;" >
+                <div class="ui secondary inverted pointing menu">
+                  <div class="center menu" id="submenu">
+                    <!-- <a class="active item">Home</a> -->
+                     {%block submenu%}{%endblock%}
+                  </div>
+                  
+                  <div class="right menu" style="position: absolute;right: 10px;">
+                    <a class="item">
+                      <a class="ui inverted icon button" href="/accounts/logout">
+                        <i class="sign out alternate icon"></i> Salir</a>
+                    </a>
+                  </div>
+                </div>
+              </div>
+          </div>
+          <div class="ui segment" style="height: 100%; overflow-y:auto;margin-top: 0px;" id="principal-container">
+              {%block content%}{%endblock%}
+          </div>          
+        </div>  
+      </div>   
+    </div>
+    {%block contextmenu%}{%endblock%}
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fomantic-ui@2.9.2/dist/semantic.min.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/js/service-worker.js')
+                    .then((reg) => console.log('Service Worker registrado', reg))
+                    .catch((err) => console.log('Service Worker fallo', err));
+            });
+      }
+    </script>
+    <script>
+      $(document).ready(function(){
+        const $loader = $('#app-loader');
+        const hideLoader = function(){
+          $loader.removeClass('active');
+        };
+
+        $loader.addClass('active');
+
+        $(window).on('load pageshow', hideLoader);
+        setTimeout(hideLoader, 4000);
+
+        $(window).on('beforeunload', function(){
+          $loader.addClass('active');
+        });
+      })
+    </script>
+    {%block script%}{%endblock%}
+  </body>
+</html>
