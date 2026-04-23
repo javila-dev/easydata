@@ -34,7 +34,10 @@
     <div class="ui segment hidden" id="job-panel">
       <div class="ui top attached clearing basic segment" style="padding-left:0;padding-right:0;">
         <h3 class="ui left floated header" id="job-title">Importación en curso</h3>
-        <div class="ui right floated label" id="job-status-label">PENDING</div>
+        <div class="ui right floated buttons">
+          <button type="button" class="ui red basic button" id="btn-stop-import" disabled>Stop</button>
+          <div class="ui label" id="job-status-label">PENDING</div>
+        </div>
       </div>
 
       <div class="ui indicating progress" id="job-progress" data-percent="0">
@@ -125,9 +128,14 @@
 <script>
   $(document).ready(function () {
     let pollingHandle = null;
+    let currentJobId = null;
 
     $('.ui.accordion').accordion();
     $('#job-progress').progress({ percent: 0 });
+
+    function renderRowState(item) {
+      return item && item.estado ? ` (${item.estado})` : '';
+    }
 
     function renderItems(title, items, formatter) {
       if (!items || items.length === 0) {
@@ -145,6 +153,7 @@
     }
 
     function updateJobView(data) {
+      currentJobId = data.job_id;
       $('#job-panel').removeClass('hidden');
       $('#job-title').text(`Importación #${data.job_id} - ${data.nombre_archivo}`);
       $('#job-status-label').text(data.status);
@@ -152,9 +161,16 @@
       const total = data.filas_importables || data.total_filas || 0;
       const processed = data.filas_procesadas || 0;
       const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
-      const label = total > 0
+      let label = total > 0
         ? `${processed} de ${total} filas importables procesadas`
         : 'Preparando archivo...';
+      if (data.status === 'STOPPING') {
+        label = 'Deteniendo importación...';
+      } else if (data.status === 'STOPPED') {
+        label = total > 0
+          ? `Importación detenida en ${processed} de ${total} filas importables`
+          : 'Importación detenida';
+      }
 
       $('#job-progress').progress({
         percent: percent,
@@ -175,11 +191,24 @@
       $('#stat-noimport').text(data.no_importables || 0);
       $('#stat-ignored').text(data.ignoradas || 0);
 
+      const canStop = ['PENDING', 'MAPPING', 'RUNNING', 'STOPPING'].includes(data.status);
+      $('#btn-stop-import').prop('disabled', !canStop);
+      if (data.status === 'STOPPING') {
+        $('#btn-stop-import').addClass('loading disabled');
+      } else {
+        $('#btn-stop-import').removeClass('loading');
+      }
+
       if (data.status === 'FAILED') {
         $('#job-error-box')
           .removeClass('hidden success warning')
           .addClass('error')
           .text(data.mensaje_error || 'La importación falló.');
+      } else if (data.status === 'STOPPED') {
+        $('#job-error-box')
+          .removeClass('hidden error success')
+          .addClass('warning')
+          .text('La importación fue detenida por el usuario.');
       } else {
         $('#job-error-box').addClass('hidden').removeClass('error success warning').empty();
       }
@@ -187,23 +216,23 @@
       const detailsHtml = [
         renderItems('Conflictos', data.detalles_conflicto, (item) => `
           <div class="item">
-            <div class="content">Fila ${item.fila} - ID ${item.id}: ${item.motivo}</div>
+            <div class="content">Fila ${item.fila}${renderRowState(item)} - ID ${item.id}: ${item.motivo}</div>
           </div>
         `),
         renderItems('Errores', data.detalles_error, (item) => `
           <div class="item">
-            <div class="content">Fila ${item.fila} - ID ${item.id}: ${item.error}</div>
+            <div class="content">Fila ${item.fila}${renderRowState(item)} - ID ${item.id}: ${item.error}</div>
           </div>
         `),
         renderItems('No importables', data.detalles_no_importables, (item) => `
           <div class="item">
-            <div class="content">Fila ${item.fila} - ID ${item.id}: ${(item.issues || []).join(', ')}</div>
+            <div class="content">Fila ${item.fila}${renderRowState(item)} - ID ${item.id}: ${(item.issues || []).join(', ')}</div>
           </div>
         `)
       ].join('');
       $('#job-details').html(detailsHtml || '<div class="ui message">Sin incidencias registradas por ahora.</div>');
 
-      if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+      if (data.status === 'COMPLETED' || data.status === 'FAILED' || data.status === 'STOPPED') {
         if (pollingHandle) {
           clearInterval(pollingHandle);
           pollingHandle = null;
@@ -282,6 +311,34 @@
           window.open(response.url, '_blank');
         },
         complete: function () {
+          button.removeClass('loading disabled');
+        }
+      });
+    });
+
+    $('#btn-stop-import').click(function () {
+      if (!currentJobId) {
+        return;
+      }
+
+      const button = $(this);
+      button.addClass('loading disabled');
+
+      $.ajax({
+        url: `/humanresources/initial-import/stop/${currentJobId}`,
+        type: 'POST',
+        headers: {
+          'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+        },
+        success: function () {
+          $('#job-status-label').text('STOPPING');
+          $('#job-progress .label').text('Deteniendo importación...');
+        },
+        error: function (xhr) {
+          const message = xhr.responseJSON && xhr.responseJSON.error
+            ? xhr.responseJSON.error
+            : 'No fue posible detener la importación.';
+          $('#job-error-box').removeClass('hidden').addClass('warning').text(message);
           button.removeClass('loading disabled');
         }
       });

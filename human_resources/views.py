@@ -1204,13 +1204,14 @@ def serialize_no_importables(no_importables, limit=50):
         {
             'fila': item.get('row_number'),
             'id': item.get('numero_identificacion'),
+            'estado': 'ACTIVO' if item.get('activo') is True else 'INACTIVO',
             'issues': item.get('issues', []),
         }
         for item in no_importables[:limit]
     ]
 
 
-def process_import_records(records, progress_callback=None):
+def process_import_records(records, progress_callback=None, should_stop=None):
     grouped = build_import_response(records)
     importables = grouped['importables']
     no_importables = grouped['no_importables']
@@ -1229,6 +1230,7 @@ def process_import_records(records, progress_callback=None):
         'detalles_error': [],
         'detalles_conflicto': [],
         'detalles_no_importables': serialize_no_importables(no_importables),
+        'stopped': False,
         'class': 'success',
     }
 
@@ -1249,6 +1251,9 @@ def process_import_records(records, progress_callback=None):
         )
 
     for index, rec in enumerate(importables, start=1):
+        if should_stop and should_stop():
+            summary['stopped'] = True
+            break
         try:
             bp_fields = {
                 'tipo_id':              rec.get('tipo_id') or 'CC',
@@ -1340,6 +1345,7 @@ def process_import_records(records, progress_callback=None):
                     summary['detalles_conflicto'].append({
                         'fila': rec.get('row_number'),
                         'id': rec.get('numero_identificacion'),
+                        'estado': 'ACTIVO' if rec.get('activo') is True else 'INACTIVO',
                         'motivo': contract_decision.get('reason'),
                         'contrato_id': getattr(conflict_target, 'pk', None),
                         'fecha_inicio_existente': comparable_import_value(getattr(conflict_target, 'fecha_inicio', None)) if conflict_target else None,
@@ -1389,6 +1395,7 @@ def process_import_records(records, progress_callback=None):
             summary['detalles_error'].append({
                 'fila': rec.get('row_number'),
                 'id': rec.get('numero_identificacion'),
+                'estado': 'ACTIVO' if rec.get('activo') is True else 'INACTIVO',
                 'error': str(e),
             })
 
@@ -1410,6 +1417,30 @@ def process_import_records(records, progress_callback=None):
                 detalles_no_importables=summary['detalles_no_importables'][:50],
             )
 
+    if summary['stopped'] and progress_callback:
+        progress_callback(
+            status='STOPPING',
+            total_filas=len(records),
+            filas_importables=len(importables),
+            filas_procesadas=(
+                summary['creados'] +
+                summary['actualizados'] +
+                summary['omitidos'] +
+                summary['conflictos'] +
+                summary['errores']
+            ),
+            creados=summary['creados'],
+            actualizados=summary['actualizados'],
+            omitidos=summary['omitidos'],
+            conflictos=summary['conflictos'],
+            errores=summary['errores'],
+            no_importables=len(no_importables),
+            ignoradas=len(ignored_rows),
+            detalles_conflicto=summary['detalles_conflicto'][:50],
+            detalles_error=summary['detalles_error'][:50],
+            detalles_no_importables=summary['detalles_no_importables'][:50],
+        )
+
     summary['class'] = 'success' if summary['conflictos'] == 0 and summary['errores'] == 0 else 'warning'
     return summary
 
@@ -1423,9 +1454,22 @@ def run_initial_import_job(job_id, user_id):
     job = importacion_personal_job.objects.get(pk=job_id)
     try:
         update_import_job(job_id, status='MAPPING', fecha_inicio=timezone.now())
+        job.refresh_from_db(fields=['stop_requested'])
+        if job.stop_requested:
+            update_import_job(job_id, status='STOPPED', fecha_fin=timezone.now())
+            return
         from scripts.map_hr_snapshot import Mapper, load_rows
 
         source_rows = load_rows(job.ruta_archivo)
+        job.refresh_from_db(fields=['stop_requested'])
+        if job.stop_requested:
+            update_import_job(
+                job_id,
+                status='STOPPED',
+                fecha_fin=timezone.now(),
+                total_filas=len(source_rows),
+            )
+            return
         mapper = Mapper()
         records = [mapper.map_row(raw_row, row_number) for row_number, raw_row in source_rows]
 
@@ -1433,14 +1477,27 @@ def run_initial_import_job(job_id, user_id):
             kwargs['fecha_actualizacion'] = timezone.now()
             update_import_job(job_id, **kwargs)
 
-        summary = process_import_records(records, progress_callback=progress_callback)
+        def should_stop():
+            return importacion_personal_job.objects.filter(pk=job_id, stop_requested=True).exists()
+
+        summary = process_import_records(
+            records,
+            progress_callback=progress_callback,
+            should_stop=should_stop,
+        )
         update_import_job(
             job_id,
-            status='COMPLETED',
+            status='STOPPED' if summary.get('stopped') else 'COMPLETED',
             fecha_fin=timezone.now(),
             total_filas=len(records),
             filas_importables=summary['total_procesados'],
-            filas_procesadas=summary['total_procesados'],
+            filas_procesadas=(
+                summary['creados'] +
+                summary['actualizados'] +
+                summary['omitidos'] +
+                summary['conflictos'] +
+                summary['errores']
+            ),
             creados=summary['creados'],
             actualizados=summary['actualizados'],
             omitidos=summary['omitidos'],
@@ -1840,10 +1897,11 @@ def initial_personal_import_start(request):
 @login_required
 @rol_permission('Gestion humana')
 def initial_personal_import_status(request, job_id):
-    job = importacion_personal_job.objects.get(pk=job_id)
+    job = importacion_personal_job.objects.get(pk=job_id, usuario=request.user)
     return JsonResponse({
         'job_id': job.pk,
         'status': job.status,
+        'stop_requested': job.stop_requested,
         'nombre_archivo': job.nombre_archivo,
         'total_filas': job.total_filas,
         'filas_importables': job.filas_importables,
@@ -1861,6 +1919,31 @@ def initial_personal_import_status(request, job_id):
         'mensaje_error': job.mensaje_error,
         'fecha_inicio': job.fecha_inicio.isoformat() if job.fecha_inicio else None,
         'fecha_fin': job.fecha_fin.isoformat() if job.fecha_fin else None,
+    })
+
+
+@login_required
+@rol_permission('Gestion humana')
+def initial_personal_import_stop(request, job_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido.'}, status=405)
+
+    updated = importacion_personal_job.objects.filter(
+        pk=job_id,
+        usuario=request.user,
+        status__in=['PENDING', 'MAPPING', 'RUNNING', 'STOPPING'],
+    ).update(
+        stop_requested=True,
+        status='STOPPING',
+        fecha_actualizacion=timezone.now(),
+    )
+
+    if not updated:
+        return JsonResponse({'error': 'La importación no se puede detener en su estado actual.'}, status=400)
+
+    return JsonResponse({
+        'job_id': job_id,
+        'status': 'STOPPING',
     })
         
 def safe_value(value):

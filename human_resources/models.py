@@ -550,6 +550,8 @@ class importacion_personal_job(models.Model):
         ('PENDING', 'PENDING'),
         ('MAPPING', 'MAPPING'),
         ('RUNNING', 'RUNNING'),
+        ('STOPPING', 'STOPPING'),
+        ('STOPPED', 'STOPPED'),
         ('COMPLETED', 'COMPLETED'),
         ('FAILED', 'FAILED'),
     )
@@ -558,6 +560,7 @@ class importacion_personal_job(models.Model):
     nombre_archivo = models.CharField(max_length=255)
     ruta_archivo = models.CharField(max_length=500)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    stop_requested = models.BooleanField(default=False)
     total_filas = models.IntegerField(default=0)
     filas_importables = models.IntegerField(default=0)
     filas_procesadas = models.IntegerField(default=0)

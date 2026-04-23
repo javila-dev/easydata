@@ -8,6 +8,7 @@ urlpatterns = [
     path('initial-import/', views.initial_personal_import),
     path('initial-import/start', views.initial_personal_import_start),
     path('initial-import/status/<int:job_id>', views.initial_personal_import_status),
+    path('initial-import/stop/<int:job_id>', views.initial_personal_import_stop),
     path('reports/',views.charts_reports),
     path('budget/', views.personalbudget),
     path('parameters/', views.parameters),
