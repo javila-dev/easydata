@@ -507,20 +507,25 @@ $(document).ready(function () {
     /* ── Filtro: ocultar cargos con estructura = 0 ───────────── */
     var mostrarSinEstructura = false;
 
-    $.fn.dataTable.ext.search.push(function (settings, data) {
-        if (settings.nTable.id !== 'table-cargos-new') return true;
-        if (mostrarSinEstructura) return true;
-        return parseInt(data[2]) > 0;
-    });
+    function aplicarFiltroEstructura(api) {
+        api.rows().every(function () {
+            var d    = this.data();
+            var $row = $(this.node());
+            if (!mostrarSinEstructura && d.cantidad_aprobada == 0) {
+                $row.hide();
+            } else {
+                $row.show();
+            }
+        });
+    }
 
     $('#btn-toggle-sin-estructura').on('click', function () {
         mostrarSinEstructura = !mostrarSinEstructura;
-        if (mostrarSinEstructura) {
-            $(this).html('<i class="eye slash icon"></i> Ocultar cargos sin estructura');
-        } else {
-            $(this).html('<i class="eye icon"></i> Mostrar cargos sin estructura');
-        }
-        if (tablaCargos) tablaCargos.draw();
+        $(this).html(mostrarSinEstructura
+            ? '<i class="eye slash icon"></i> Ocultar cargos sin estructura'
+            : '<i class="eye icon"></i> Mostrar cargos sin estructura'
+        );
+        if (tablaCargos) aplicarFiltroEstructura(tablaCargos.api ? tablaCargos.api() : tablaCargos);
     });
 
     function buildTablaCargos(url) {
@@ -535,6 +540,9 @@ $(document).ready(function () {
                 { data: 'cantidad_actual',   className: 'text-center' },
                 { data: 'diferencia',        className: 'text-center' }
             ],
+            drawCallback: function () {
+                aplicarFiltroEstructura(this.api());
+            },
             footerCallback: function () {
                 var api    = this.api();
                 var intVal = function (i) {
