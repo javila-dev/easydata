@@ -563,7 +563,33 @@
                     _: 'Filtros (%d)'
                 },
                 value: 'Opción',
-                valueJoiner: 'es'
+                valueJoiner: 'es',
+                conditions: {
+                    string: {
+                        '=':        'Igual a',
+                        '!=':       'Diferente a',
+                        'contains': 'Contiene',
+                        '!contains':'No contiene',
+                        'starts':   'Empieza con',
+                        '!starts':  'No empieza con',
+                        'ends':     'Termina con',
+                        '!ends':    'No termina con',
+                        'null':     'Vacío',
+                        '!null':    'No vacío'
+                    },
+                    num: {
+                        '=':        'Igual a',
+                        '!=':       'Diferente a',
+                        '<':        'Menor que',
+                        '<=':       'Menor o igual que',
+                        '>':        'Mayor que',
+                        '>=':       'Mayor o igual que',
+                        'between':  'Entre',
+                        '!between': 'No entre',
+                        'null':     'Vacío',
+                        '!null':    'No vacío'
+                    }
+                }
             }
         },
         ajax:{
