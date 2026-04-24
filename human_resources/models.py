@@ -142,8 +142,14 @@ class area(models.Model):
     def cantidad_actual(self):
         cantidad = contratos_personal.objects.filter(cargo__area = self.pk,
                                             activo=True).count()
-        
         return cantidad
+
+    def cantidad_aprobada(self):
+        from django.db.models import Sum
+        result = cargo.objects.filter(area=self.pk, activo=True).aggregate(
+            total=Sum('cantidad_aprobada')
+        )
+        return result['total'] or 0
     
 class canal(models.Model):
     """ Esto en realidad es la orden """

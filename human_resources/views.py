@@ -827,7 +827,7 @@ def parameters(request):
                 areas = area.objects.filter(estructura=estructura_id)
                 
                 jsondata = JsonRender(areas, field_list=('id','descripcion'),
-                                      query_functions=('cantidad_actual',))
+                                      query_functions=('cantidad_actual','cantidad_aprobada'))
                 
                 data = {
                     'data': jsondata.render()

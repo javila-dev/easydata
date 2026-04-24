@@ -102,6 +102,7 @@
                     <thead>
                         <tr>
                             <th class="sticky">Área</th>
+                            <th class="text-center sticky">Aprobados</th>
                             <th class="text-center sticky">Personal activo</th>
                             <th class="text-center sticky" style="width:60px;"></th>
                         </tr>
@@ -110,10 +111,17 @@
                         <tr>
                             <th class="text-right" style="color:#999;">Total</th>
                             <th class="text-center"></th>
+                            <th class="text-center"></th>
                             <th></th>
                         </tr>
                     </tfoot>
                 </table>
+                <div style="text-align:center;margin-top:1rem;">
+                    <button type="button" id="btn-toggle-sin-personal"
+                            class="ui basic small grey button">
+                        <i class="eye icon"></i> Mostrar áreas sin personal
+                    </button>
+                </div>
             </div>
 
             <!-- Tabla de cargos -->
@@ -411,6 +419,9 @@ $(document).ready(function () {
         $('#cargos-section').hide();
         $('#areas-section').show();
 
+        mostrarSinPersonal = false;
+        $('#btn-toggle-sin-personal').html('<i class="eye icon"></i> Mostrar áreas sin personal');
+
         var url = BASE_URL + '?todo=datatable-areas-by-estructura&estructura=' + id;
         if (!tablaAreas) {
             tablaAreas = buildTablaAreas(url);
@@ -464,6 +475,30 @@ $(document).ready(function () {
     var pendingDeleteAreaId     = null;
     var pendingDeleteAreaNombre = null;
 
+    /* ── Filtro: ocultar áreas sin personal ni aprobados ────── */
+    var mostrarSinPersonal = false;
+
+    function aplicarFiltroPersonal(api) {
+        api.rows().every(function () {
+            var d    = this.data();
+            var $row = $(this.node());
+            if (!mostrarSinPersonal && d.cantidad_aprobada == 0 && d.cantidad_actual == 0) {
+                $row.hide();
+            } else {
+                $row.show();
+            }
+        });
+    }
+
+    $('#btn-toggle-sin-personal').on('click', function () {
+        mostrarSinPersonal = !mostrarSinPersonal;
+        $(this).html(mostrarSinPersonal
+            ? '<i class="eye slash icon"></i> Ocultar áreas sin personal'
+            : '<i class="eye icon"></i> Mostrar áreas sin personal'
+        );
+        if (tablaAreas) aplicarFiltroPersonal(tablaAreas.api ? tablaAreas.api() : tablaAreas);
+    });
+
     /* ── Construcción de DataTables ──────────────────────────── */
     function buildTablaAreas(url) {
         var dt = new DataTable('#table-areas-new', {
@@ -472,7 +507,8 @@ $(document).ready(function () {
             ajax: { url: url, dataSrc: 'data' },
             columns: [
                 { data: 'descripcion' },
-                { data: 'cantidad_actual', className: 'text-center' },
+                { data: 'cantidad_aprobada', className: 'text-center' },
+                { data: 'cantidad_actual',   className: 'text-center' },
                 { data: null, orderable: false, className: 'text-center',
                   render: function (data, type, row) {
                       return '<button class="ui mini red icon button btn-delete-area" ' +
@@ -484,13 +520,26 @@ $(document).ready(function () {
                   }
                 }
             ],
+            drawCallback: function () {
+                aplicarFiltroPersonal(this.api());
+            },
             footerCallback: function () {
-                var api   = this.api();
-                var total = api.column(1).data().reduce(function (a, b) {
-                    return (parseInt(a) || 0) + (parseInt(b) || 0);
-                }, 0);
-                $(api.column(1).footer()).html(total);
+                var api = this.api();
+                [1, 2].forEach(function (col) {
+                    var total = api.column(col).data().reduce(function (a, b) {
+                        return (parseInt(a) || 0) + (parseInt(b) || 0);
+                    }, 0);
+                    $(api.column(col).footer()).html(total);
+                });
             }
+        });
+
+        $('#table-areas-new tbody').on('click', 'tr', function () {
+            var rowData = dt.row(this).data();
+            if (!rowData) return;
+            var estructuraNombre = currentEstructura.nombre;
+            highlightNode('area', rowData.id);
+            selectArea(rowData.id, rowData.descripcion, currentEstructura.id, estructuraNombre);
         });
 
         $('#table-areas-new tbody').on('click', '.btn-delete-area', function (e) {
