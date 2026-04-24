@@ -811,7 +811,7 @@ def parameters(request):
                     activo=True, area = area_ei
                 )
                 
-                jsondata = JsonRender(ei, field_list = ('id','descripcion','cantidad_aprobada','tap'),
+                jsondata = JsonRender(ei, field_list = ('id','descripcion','cantidad_aprobada','tap','tipo_posicion'),
                                       query_functions=('cantidad_actual','diferencia'))
                 
                 data = {
@@ -843,6 +843,7 @@ def parameters(request):
                 cargo_id = request.POST.get('cargo')
                 cantidad = request.POST.get('cantidad')
                 tap = request.POST.get('tap')
+                tipo_posicion = request.POST.get('tipo_posicion')
 
                 cargo = cargos_personal.objects.get(pk=cargo_id)
                 cantidad_actual = int(cargo.cantidad_aprobada)
@@ -859,6 +860,13 @@ def parameters(request):
                 if tap_actual != tap:
                     cargo.tap = tap
                     action = f'Actualizó el TAP del cargo {cargo.descripcion.upper()} de {tap_actual} a {tap}'
+
+                    historicos = historico_base_teorica.objects.filter(
+                        cargo = cargo
+                    )
+
+                if tipo_posicion:
+                    cargo.tipo_posicion = tipo_posicion
 
                     historicos = historico_base_teorica.objects.filter(
                         cargo = cargo
@@ -891,6 +899,7 @@ def parameters(request):
                 descripcion = request.POST.get('descripcion-cargo')
                 cantidad_estructura = request.POST.get('cantidad-estructura-nuevo-cargo')
                 tap = request.POST.get('tap_cargo')
+                tipo_posicion = request.POST.get('tipo_posicion_cargo')
                 area_= area.objects.get(pk=area_)
 
                 check_cargo = cargos_personal.objects.filter(
@@ -910,6 +919,7 @@ def parameters(request):
                     area = area_,
                     cantidad_aprobada = cantidad_estructura,
                     tap = tap,
+                    tipo_posicion = tipo_posicion or 'HC',
                 )
                 
                 data = {
