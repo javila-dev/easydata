@@ -70,17 +70,13 @@
       <div class="card-hdr">Vacantes por Gerencia</div>
       <div id="ch-vac-gerencia" class="chart-box chart-box-pie"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
     </div>
+    <div class="card" id="c-antiguedad">
+      <div class="card-hdr">Distribución de Antigüedad</div>
+      <div id="ch-antiguedad" class="chart-box chart-box-pie"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
+    </div>
     <div class="card" id="c-vac-cargo">
       <div class="card-hdr">Top 5 Cargos con más Vacantes</div>
       <div id="ch-vac-cargo" class="chart-box chart-box-vac"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
-    </div>
-    <div class="card" id="c-cumplimiento">
-      <div class="card-hdr">% Cumplimiento de Estructura por Gerencia</div>
-      <div id="ch-cumplimiento" class="chart-box chart-box-cumpl"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
-    </div>
-    <div class="card" id="c-antiguedad">
-      <div class="card-hdr">Distribución de Antigüedad</div>
-      <div id="ch-antiguedad" class="chart-box"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
     </div>
   </div>
 
@@ -369,42 +365,6 @@
       });
     }
 
-    /* ── % Cumplimiento de Estructura por Gerencia ── */
-    var cumplByGer = {};
-    pos.forEach(function (r) {
-      var ger = r[10] || 'Sin dato';
-      if (!cumplByGer[ger]) cumplByGer[ger] = { aprobadas: 0, actual: 0 };
-      cumplByGer[ger].aprobadas += r[4] || 0;
-      cumplByGer[ger].actual    += r[6] || 0;
-    });
-    var cumplEntries = Object.entries(cumplByGer)
-      .filter(function (e) { return e[1].aprobadas > 0; })
-      .map(function (e) {
-        return { name: e[0], pct: Math.round(e[1].actual / e[1].aprobadas * 100) };
-      })
-      .sort(function (a, b) { return a.pct - b.pct; });
-
-    Highcharts.chart('ch-cumplimiento', {
-      chart: { type: 'bar' },
-      xAxis: { categories: cumplEntries.map(function (e) { return e.name; }), title: { text: null } },
-      yAxis: {
-        min: 0, max: 100,
-        title: { text: '% Ocupación' },
-        plotLines: [{ value: 100, color: '#ef4444', width: 2, dashStyle: 'Dash',
-                      label: { text: '100%', align: 'right', style: { color: '#ef4444', fontSize: '10px' } } }]
-      },
-      series: [{
-        name: '% Cumplimiento',
-        data: cumplEntries.map(function (e) {
-          var color = e.pct >= 100 ? '#10b981' : e.pct >= 80 ? '#f59e0b' : '#ef4444';
-          return { y: e.pct, color: color };
-        }),
-        dataLabels: { enabled: true, format: '{y}%', style: { fontSize: '10px' } }
-      }],
-      legend: { enabled: false },
-      tooltip: { pointFormat: '<b>{point.category}</b>: <b>{point.y}%</b> de ocupación' }
-    });
-
     /* ── Distribución de Antigüedad ── */
     var buckets = [
       { label: '< 1 año',   min: 0,  max: 1  },
@@ -538,10 +498,9 @@
 #c-sede         { grid-column: 3;        grid-row: 1 / span 2; }
 #c-salario      { grid-column: 1;        grid-row: 2; }
 #c-contrato     { grid-column: 2;        grid-row: 2; }
-#c-vac-gerencia  { grid-column: 1 / span 2; grid-row: 3; }
-#c-vac-cargo     { grid-column: 3;          grid-row: 3; }
-#c-cumplimiento  { grid-column: 1 / span 2; grid-row: 4; }
-#c-antiguedad    { grid-column: 3;          grid-row: 4; }
+#c-vac-gerencia { grid-column: 1; grid-row: 3; }
+#c-antiguedad   { grid-column: 2; grid-row: 3; }
+#c-vac-cargo    { grid-column: 3; grid-row: 3; }
 
 .card {
   background: #fff;
@@ -561,11 +520,10 @@
   border-bottom: 2px solid #f1f5f9;
 }
 
-.chart-box       { height: 260px; }
-.chart-box-tall  { height: 554px; }
-.chart-box-vac   { height: 200px; }
-.chart-box-pie   { height: 260px; }
-.chart-box-cumpl { height: 300px; }
+.chart-box      { height: 260px; }
+.chart-box-tall { height: 554px; }
+.chart-box-vac  { height: 200px; }
+.chart-box-pie  { height: 260px; }
 
 /* ── Responsive ── */
 @media (max-width: 1100px) {
@@ -577,20 +535,18 @@
   #c-salario      { grid-column: 1; grid-row: auto; }
   #c-contrato     { grid-column: 2; grid-row: auto; }
   #c-vac-gerencia { grid-column: 1; grid-row: auto; }
-  #c-vac-cargo    { grid-column: 2; grid-row: auto; }
-  #c-cumplimiento { grid-column: 1; grid-row: auto; }
   #c-antiguedad   { grid-column: 2; grid-row: auto; }
-  .chart-box-tall  { height: 260px; }
-  .chart-box-vac   { height: 200px; }
-  .chart-box-cumpl { height: 260px; }
+  #c-vac-cargo    { grid-column: 1 / span 2; grid-row: auto; }
+  .chart-box-tall { height: 260px; }
+  .chart-box-vac  { height: 200px; }
 }
 
 @media (max-width: 640px) {
   #kpi-strip  { grid-template-columns: 1fr; }
   #chart-grid { grid-template-columns: 1fr; }
   #c-gerencia,#c-genero,#c-sede,#c-contrato,
-  #c-salario,#c-vac-gerencia,#c-vac-cargo,
-  #c-cumplimiento,#c-antiguedad { grid-column: 1; grid-row: auto; }
+  #c-salario,#c-vac-gerencia,#c-antiguedad,
+  #c-vac-cargo { grid-column: 1; grid-row: auto; }
 }
 
 /* ── Loading states ── */
