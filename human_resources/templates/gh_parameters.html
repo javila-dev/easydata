@@ -303,21 +303,33 @@ $(document).ready(function () {
                     );
                     return;
                 }
+                var sinPersonal = 0;
                 $.each(response.data, function (_, a) {
+                    var esCero = a.cantidad_actual === 0;
+                    if (esCero) sinPersonal++;
                     $container.append(
                         '<div class="area-item" ' +
                             'data-id="' + a.value + '" ' +
                             'data-nombre="' + a.name + '" ' +
                             'data-estructura="' + estructuraId + '" ' +
-                            'style="padding:0.42rem 0.6rem;cursor:pointer;border-radius:4px;' +
-                                   'margin:2px 2px;font-size:0.85rem;color:#555;' +
-                                   'transition:background 0.12s,color 0.12s;">' +
+                            'data-cantidad="' + a.cantidad_actual + '" ' +
+                            (esCero ? 'style="display:none;"' : '') +
+                            '>' +
                             '<i class="map marker alternate icon" style="color:#4bb3fd;font-size:0.82em;"></i> ' +
                             a.name +
                             '<span style="color:#bbb;font-size:0.82em;margin-left:0.25rem;">(' + a.cantidad_actual + ')</span>' +
                         '</div>'
                     );
                 });
+                if (sinPersonal > 0) {
+                    $container.append(
+                        '<div class="toggle-sin-personal" data-estructura="' + estructuraId + '" data-visible="0" ' +
+                            'style="padding:0.3rem 0.6rem;font-size:0.78rem;color:#aaa;cursor:pointer;' +
+                                   'text-align:center;margin-top:2px;border-top:1px dashed #eee;">' +
+                            '<i class="eye icon"></i> Ver ' + sinPersonal + ' sin personal' +
+                        '</div>'
+                    );
+                }
             },
             error: function () {
                 $container.html(
@@ -355,6 +367,22 @@ $(document).ready(function () {
         var nombre = $(this).data('nombre');
         highlightNode('estructura', id);
         selectEstructura(id, nombre);
+    });
+
+    $(document).on('click', '.toggle-sin-personal', function (e) {
+        e.stopPropagation();
+        var $btn       = $(this);
+        var estructId  = $btn.data('estructura');
+        var visible    = $btn.data('visible');
+        var $items     = $('#areas-list-' + estructId + ' .area-item[data-cantidad="0"]');
+        var count      = $items.length;
+        if (visible) {
+            $items.hide();
+            $btn.data('visible', 0).html('<i class="eye icon"></i> Ver ' + count + ' sin personal');
+        } else {
+            $items.show();
+            $btn.data('visible', 1).html('<i class="eye slash icon"></i> Ocultar sin personal');
+        }
     });
 
     $(document).on('click', '.area-item', function (e) {
@@ -730,6 +758,15 @@ $(document).ready(function () {
     .estructura-node:hover {
         background: #f0f7ff !important;
         color: #1a6fbf !important;
+    }
+    .area-item {
+        padding: 0.42rem 0.6rem;
+        cursor: pointer;
+        border-radius: 4px;
+        margin: 2px 2px;
+        font-size: 0.85rem;
+        color: #555;
+        transition: background 0.12s, color 0.12s;
     }
     .area-item:hover {
         background: #f0f7ff !important;
