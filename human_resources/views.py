@@ -1040,17 +1040,31 @@ def dashboard(request):
             
         elif todo == 'getRotationData':
             today = datetime.date.today()
+            tres_meses = today - datetime.timedelta(days=90)
             entradas = contratos_personal.objects.filter(
                 fecha_inicio__year=today.year,
                 fecha_inicio__month=today.month,
                 trabajador__activo=True,
             ).values('trabajador').distinct().count()
-            salidas = contratos_personal.objects.filter(
+            salidas_mes = contratos_personal.objects.filter(
                 fecha_retiro__year=today.year,
                 fecha_retiro__month=today.month,
                 activo=False,
             ).values('trabajador').distinct().count()
-            return JsonResponse({'entradas': entradas, 'salidas': salidas})
+            salidas_3m_qs = contratos_personal.objects.filter(
+                fecha_retiro__gte=tres_meses,
+                activo=False,
+            )
+            salidas_por_cargo = list(
+                salidas_3m_qs.values('cargo__descripcion')
+                .annotate(total=Count('id'))
+                .order_by('-total')
+            )
+            return JsonResponse({
+                'entradas': entradas,
+                'salidas': salidas_mes,
+                'salidas_por_cargo': salidas_por_cargo,
+            })
 
         elif todo == 'getpositionsData':
 

@@ -66,9 +66,9 @@
       <div class="card-hdr">HC por Tipo de Contrato</div>
       <div id="ch-contrato" class="chart-box"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
     </div>
-    <div class="card" id="c-vac-gerencia">
-      <div class="card-hdr">Vacantes por Gerencia</div>
-      <div id="ch-vac-gerencia" class="chart-box chart-box-pie"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
+    <div class="card" id="c-rot-cargo">
+      <div class="card-hdr">Top 5 Cargos — % Rotación (últimos 3 meses)</div>
+      <div id="ch-rot-cargo" class="chart-box chart-box-pie"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
     </div>
     <div class="card" id="c-antiguedad">
       <div class="card-hdr">Distribución de Antigüedad</div>
@@ -293,44 +293,6 @@
       legend: { enabled: true, align: 'center', verticalAlign: 'bottom' }
     });
 
-    /* ── Vacantes por Gerencia ── */
-    /* positionsData cols: 0=id,1=desc,2=area_id,3=activo,4=aprobadas,
-                           5=tap,6=actual,7=diferencia,8=area,
-                           9=estructura,10=dependecia (gerencia) */
-    var vacByGer = {};
-    pos.forEach(function (r) {
-      var ger = r[10] || 'Sin dato';
-      var dif = r[7] > 0 ? r[7] : 0;
-      vacByGer[ger] = (vacByGer[ger] || 0) + dif;
-    });
-    var vacEntries = Object.entries(vacByGer)
-      .filter(function (e) { return e[1] > 0; })
-      .sort(function (a, b) { return b[1] - a[1]; });
-
-    if (vacEntries.length === 0) {
-      document.getElementById('ch-vac-gerencia').innerHTML =
-        '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#10b981;font-weight:700;font-size:1.1em;">' +
-        '<i class="check circle icon"></i>&nbsp;Sin vacantes abiertas</div>';
-    } else {
-      Highcharts.chart('ch-vac-gerencia', {
-        chart: { type: 'pie' },
-        series: [{
-          innerSize: '52%',
-          data: vacEntries.map(function (e, i) {
-            return { name: e[0], y: e[1], color: PALETTE[i % PALETTE.length] };
-          }),
-          dataLabels: {
-            format: '{point.name}: {point.y}',
-            style: { fontSize: '11px' }
-          }
-        }],
-        tooltip: {
-          pointFormat: '<b>{point.name}</b><br/>Vacantes: <b>{point.y}</b> ({point.percentage:.1f}%)'
-        },
-        legend: { enabled: false }
-      });
-    }
-
     /* ── Top 5 Cargos con más Vacantes ── */
     var vacByCargo = {};
     pos.forEach(function (r) {
@@ -362,6 +324,58 @@
         }],
         legend: { enabled: false },
         tooltip: { pointFormat: '<b>{point.category}</b>: {point.y} vacante(s)' }
+      });
+    }
+
+    /* ── Top 5 Cargos — % Rotación del mes ── */
+    var activosPorCargo = {};
+    rows.forEach(function (r) {
+      var cargo = r[8] || 'Sin dato';
+      activosPorCargo[cargo] = (activosPorCargo[cargo] || 0) + 1;
+    });
+
+    var rotCargos = (rotRaw.salidas_por_cargo || [])
+      .filter(function (d) { return d.cargo__descripcion && activosPorCargo[d.cargo__descripcion] > 0; })
+      .map(function (d) {
+        var pct = Math.round(d.total / activosPorCargo[d.cargo__descripcion] * 100);
+        return { name: d.cargo__descripcion, salidas: d.total, pct: pct };
+      })
+      .sort(function (a, b) { return b.pct - a.pct; })
+      .slice(0, 5);
+
+    if (rotCargos.length === 0) {
+      document.getElementById('ch-rot-cargo').innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#10b981;font-weight:700;font-size:1.1em;">' +
+        '<i class="check circle icon"></i>&nbsp;Sin retiros en los últimos 3 meses</div>';
+    } else {
+      Highcharts.chart('ch-rot-cargo', {
+        chart: { type: 'bar' },
+        xAxis: { categories: rotCargos.map(function (d) { return d.name; }), title: { text: null } },
+        yAxis: { min: 0, title: { text: '% Rotación' }, allowDecimals: false,
+                 labels: { format: '{value}%' } },
+        series: [{
+          name: '% Rotación',
+          data: rotCargos.map(function (d, i) {
+            var color = d.pct >= 50 ? '#ef4444' : d.pct >= 25 ? '#f59e0b' : PALETTE[i % PALETTE.length];
+            return { y: d.pct, color: color };
+          }),
+          dataLabels: {
+            enabled: true,
+            formatter: function () {
+              var d = rotCargos[this.point.index];
+              return this.y + '% (' + d.salidas + ' salida' + (d.salidas > 1 ? 's' : '') + ')';
+            },
+            style: { fontSize: '10px' }
+          }
+        }],
+        legend: { enabled: false },
+        tooltip: {
+          formatter: function () {
+            var d = rotCargos[this.point.index];
+            return '<b>' + this.x + '</b><br/>Salidas: <b>' + d.salidas + '</b><br/>Activos: <b>' +
+                   activosPorCargo[this.x] + '</b><br/>Rotación: <b>' + this.y + '%</b>';
+          }
+        }
       });
     }
 
@@ -498,9 +512,9 @@
 #c-sede         { grid-column: 3;        grid-row: 1 / span 2; }
 #c-salario      { grid-column: 1;        grid-row: 2; }
 #c-contrato     { grid-column: 2;        grid-row: 2; }
-#c-vac-gerencia { grid-column: 1; grid-row: 3; }
-#c-antiguedad   { grid-column: 2; grid-row: 3; }
-#c-vac-cargo    { grid-column: 3; grid-row: 3; }
+#c-rot-cargo  { grid-column: 1; grid-row: 3; }
+#c-antiguedad { grid-column: 2; grid-row: 3; }
+#c-vac-cargo  { grid-column: 3; grid-row: 3; }
 
 .card {
   background: #fff;
@@ -534,9 +548,9 @@
   #c-sede         { grid-column: 2; grid-row: auto; }
   #c-salario      { grid-column: 1; grid-row: auto; }
   #c-contrato     { grid-column: 2; grid-row: auto; }
-  #c-vac-gerencia { grid-column: 1; grid-row: auto; }
-  #c-antiguedad   { grid-column: 2; grid-row: auto; }
-  #c-vac-cargo    { grid-column: 1 / span 2; grid-row: auto; }
+  #c-rot-cargo  { grid-column: 1; grid-row: auto; }
+  #c-antiguedad { grid-column: 2; grid-row: auto; }
+  #c-vac-cargo  { grid-column: 1 / span 2; grid-row: auto; }
   .chart-box-tall { height: 260px; }
   .chart-box-vac  { height: 200px; }
 }
@@ -545,7 +559,7 @@
   #kpi-strip  { grid-template-columns: 1fr; }
   #chart-grid { grid-template-columns: 1fr; }
   #c-gerencia,#c-genero,#c-sede,#c-contrato,
-  #c-salario,#c-vac-gerencia,#c-antiguedad,
+  #c-salario,#c-rot-cargo,#c-antiguedad,
   #c-vac-cargo { grid-column: 1; grid-row: auto; }
 }
 
