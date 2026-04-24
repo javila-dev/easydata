@@ -122,7 +122,7 @@
                     <thead>
                         <tr>
                             <th style="width:38%;" class="sticky">Cargo</th>
-                            <th class="text-center sticky">Criticidad</th>
+                            <th class="text-center sticky">TAP</th>
                             <th class="text-center sticky">Aprobados</th>
                             <th class="text-center sticky">Activos</th>
                             <th class="text-center sticky">Diferencia</th>
@@ -137,6 +137,12 @@
                         </tr>
                     </tfoot>
                 </table>
+                <div style="text-align:center;margin-top:1rem;">
+                    <button type="button" id="btn-toggle-sin-estructura"
+                            class="ui basic small grey button">
+                        <i class="eye icon"></i> Mostrar cargos sin estructura
+                    </button>
+                </div>
             </div>
 
         </div><!-- /active-panel -->
@@ -151,11 +157,11 @@
     <div class="content">
         <div class="ui form">
             <div class="field">
-                <label>Criticidad</label>
-                <select required name="criticidad_cargo" id="id_criticidad_cargo" class="ui dropdown">
-                    <option value="BAJA">BAJA</option>
-                    <option value="MEDIA">MEDIA</option>
-                    <option value="ALTA">ALTA</option>
+                <label>TAP</label>
+                <select required name="tap_cargo" id="id_tap_cargo" class="ui dropdown">
+                    <option value="BAJO">BAJO</option>
+                    <option value="MEDIO">MEDIO</option>
+                    <option value="ALTO">ALTO</option>
                 </select>
             </div>
             <div class="field">
@@ -187,13 +193,13 @@
                            class="text-center" name="cantidad-estructura-nuevo-cargo">
                 </div>
                 <div class="field">
-                    <label>Criticidad</label>
+                    <label>TAP</label>
                     <select class="ui fluid selection dropdown" required
-                            id="id_criticidad_nuevo_cargo" name="criticidad_cargo">
+                            id="id_tap_nuevo_cargo" name="tap_cargo">
                         <option value="">Selecciona...</option>
-                        <option value="BAJA">Baja</option>
-                        <option value="MEDIA">Media</option>
-                        <option value="ALTA">Alta</option>
+                        <option value="BAJO">Bajo</option>
+                        <option value="MEDIO">Medio</option>
+                        <option value="ALTO">Alto</option>
                     </select>
                 </div>
             </div>
@@ -407,6 +413,9 @@ $(document).ready(function () {
         $('#areas-section').hide();
         $('#cargos-section').show();
 
+        mostrarSinEstructura = false;
+        $('#btn-toggle-sin-estructura').html('<i class="eye icon"></i> Mostrar cargos sin estructura');
+
         var url = BASE_URL + '?todo=datatable-EIbyarea&area=' + areaId;
         if (!tablaCargos) {
             tablaCargos = buildTablaCargos(url);
@@ -467,6 +476,25 @@ $(document).ready(function () {
         return dt;
     }
 
+    /* ── Filtro: ocultar cargos con estructura = 0 ───────────── */
+    var mostrarSinEstructura = false;
+
+    $.fn.dataTable.ext.search.push(function (settings, data) {
+        if (settings.nTable.id !== 'table-cargos-new') return true;
+        if (mostrarSinEstructura) return true;
+        return parseInt(data[2]) > 0;
+    });
+
+    $('#btn-toggle-sin-estructura').on('click', function () {
+        mostrarSinEstructura = !mostrarSinEstructura;
+        if (mostrarSinEstructura) {
+            $(this).html('<i class="eye slash icon"></i> Ocultar cargos sin estructura');
+        } else {
+            $(this).html('<i class="eye icon"></i> Mostrar cargos sin estructura');
+        }
+        if (tablaCargos) tablaCargos.draw();
+    });
+
     function buildTablaCargos(url) {
         var dt = new DataTable('#table-cargos-new', {
             paging: false, searching: false, processing: true, info: false,
@@ -474,7 +502,7 @@ $(document).ready(function () {
             ajax: { url: url, dataSrc: 'data' },
             columns: [
                 { data: 'descripcion' },
-                { data: 'criticidad',       className: 'text-center' },
+                { data: 'tap',              className: 'text-center' },
                 { data: 'cantidad_aprobada', className: 'text-center' },
                 { data: 'cantidad_actual',   className: 'text-center' },
                 { data: 'diferencia',        className: 'text-center' }
@@ -503,7 +531,7 @@ $(document).ready(function () {
             if (!rowData) return;
             $('#modal-cambio-estructura').modal('show');
             $('#id-nueva-cantidad-estructura').val(rowData.cantidad_aprobada);
-            $('#id_criticidad_cargo').dropdown('set selected', rowData.criticidad);
+            $('#id_tap_cargo').dropdown('set selected', rowData.tap);
         });
 
         return dt;
@@ -516,7 +544,7 @@ $(document).ready(function () {
         onApprove: function () {
             var button    = $('#modal-cambio-estructura').find('button.approve').addClass('disabled loading');
             var cantidad  = $('#id-nueva-cantidad-estructura').val();
-            var criticidad = $('#id_criticidad_cargo').val();
+            var tap = $('#id_tap_cargo').val();
 
             if (cantidad < 0) {
                 $.toast({ displayTime: 'auto', showProgress: 'top',
@@ -532,7 +560,7 @@ $(document).ready(function () {
             form.append('csrfmiddlewaretoken', getCookie('csrftoken'));
             form.append('cargo', cargo);
             form.append('cantidad', cantidad);
-            form.append('criticidad', criticidad);
+            form.append('tap', tap);
 
             $.ajax({
                 type: 'POST', url: BASE_URL, data: form,

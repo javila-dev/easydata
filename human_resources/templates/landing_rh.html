@@ -70,6 +70,10 @@
       <div class="card-hdr">Vacantes por Gerencia</div>
       <div id="ch-vac-gerencia" class="chart-box chart-box-vac"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
     </div>
+    <div class="card" id="c-vac-cargo">
+      <div class="card-hdr">Top 5 Cargos con más Vacantes</div>
+      <div id="ch-vac-cargo" class="chart-box chart-box-vac"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
+    </div>
   </div>
 
   <div id="dash-error" class="ui negative message" style="display:none;">
@@ -287,7 +291,7 @@
 
     /* ── Vacantes por Gerencia ── */
     /* positionsData cols: 0=id,1=desc,2=area_id,3=activo,4=aprobadas,
-                           5=criticidad,6=actual,7=diferencia,8=area,
+                           5=tap,6=actual,7=diferencia,8=area,
                            9=estructura,10=dependecia (gerencia) */
     var vacByGer = {};
     pos.forEach(function (r) {
@@ -317,6 +321,40 @@
         tooltip: { pointFormat: '<b>{point.category}</b>: {point.y} vacante(s)' }
       });
     }
+
+    /* ── Top 5 Cargos con más Vacantes ── */
+    var vacByCargo = {};
+    pos.forEach(function (r) {
+      var cargo = r[1] || 'Sin dato';
+      var dif = r[7] > 0 ? r[7] : 0;
+      if (dif > 0) vacByCargo[cargo] = (vacByCargo[cargo] || 0) + dif;
+    });
+    var top5Cargos = Object.entries(vacByCargo)
+      .sort(function (a, b) { return b[1] - a[1]; })
+      .slice(0, 5);
+
+    if (top5Cargos.length === 0) {
+      document.getElementById('ch-vac-cargo').innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#10b981;font-weight:700;font-size:1.1em;">' +
+        '<i class="check circle icon"></i>&nbsp;Sin vacantes abiertas</div>';
+    } else {
+      Highcharts.chart('ch-vac-cargo', {
+        chart: { type: 'bar' },
+        xAxis: {
+          categories: top5Cargos.map(function (e) { return e[0]; }),
+          title: { text: null },
+          labels: { style: { fontSize: '11px' } }
+        },
+        yAxis: { min: 0, title: { text: 'Vacantes' }, allowDecimals: false },
+        series: [{
+          name: 'Vacantes',
+          data: top5Cargos.map(function (e, i) { return { y: e[1], color: PALETTE[i % PALETTE.length] }; }),
+          dataLabels: { enabled: true }
+        }],
+        legend: { enabled: false },
+        tooltip: { pointFormat: '<b>{point.category}</b>: {point.y} vacante(s)' }
+      });
+    }
   }
 
   run().catch(function (err) {
@@ -338,7 +376,7 @@
 <style>
 /* ── Container ── */
 #hr-dash {
-  padding: 18px;
+  padding: 18px 18px 36px 18px;
   background: #f1f5f9;
   min-height: calc(100vh - 56px);
   box-sizing: border-box;
@@ -420,7 +458,8 @@
 #c-sede         { grid-column: 3;        grid-row: 1 / span 2; }
 #c-salario      { grid-column: 1;        grid-row: 2; }
 #c-contrato     { grid-column: 2;        grid-row: 2; }
-#c-vac-gerencia { grid-column: 1 / span 3; grid-row: 3; }
+#c-vac-gerencia { grid-column: 1 / span 2; grid-row: 3; }
+#c-vac-cargo    { grid-column: 3;          grid-row: 3; }
 
 .card {
   background: #fff;
@@ -453,7 +492,8 @@
   #c-sede         { grid-column: 2; grid-row: auto; }
   #c-salario      { grid-column: 1; grid-row: auto; }
   #c-contrato     { grid-column: 2; grid-row: auto; }
-  #c-vac-gerencia { grid-column: 1 / span 2; grid-row: auto; }
+  #c-vac-gerencia { grid-column: 1; grid-row: auto; }
+  #c-vac-cargo    { grid-column: 2; grid-row: auto; }
   .chart-box-tall { height: 260px; }
   .chart-box-vac  { height: 200px; }
 }
@@ -462,7 +502,7 @@
   #kpi-strip  { grid-template-columns: 1fr; }
   #chart-grid { grid-template-columns: 1fr; }
   #c-gerencia,#c-genero,#c-sede,#c-contrato,
-  #c-salario,#c-vac-gerencia { grid-column: 1; grid-row: auto; }
+  #c-salario,#c-vac-gerencia,#c-vac-cargo { grid-column: 1; grid-row: auto; }
 }
 
 /* ── Loading states ── */

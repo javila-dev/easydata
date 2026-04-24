@@ -811,7 +811,7 @@ def parameters(request):
                     activo=True, area = area_ei
                 )
                 
-                jsondata = JsonRender(ei, field_list = ('id','descripcion','cantidad_aprobada','criticidad'), 
+                jsondata = JsonRender(ei, field_list = ('id','descripcion','cantidad_aprobada','tap'),
                                       query_functions=('cantidad_actual','diferencia'))
                 
                 data = {
@@ -842,28 +842,24 @@ def parameters(request):
             if todo == 'update_ei':
                 cargo_id = request.POST.get('cargo')
                 cantidad = request.POST.get('cantidad')
-                criticidad = request.POST.get('criticidad')
-                
+                tap = request.POST.get('tap')
+
                 cargo = cargos_personal.objects.get(pk=cargo_id)
                 cantidad_actual = int(cargo.cantidad_aprobada)
-                criticidad_actual = cargo.criticidad
-                                
-                
-                
-                
-                
+                tap_actual = cargo.tap
+
                 if cantidad_actual != cantidad:
                     cargo.cantidad_aprobada = cantidad
                     action = f'Actualizó la estructura ideal del cargo {cargo.descripcion.upper()} de {cantidad_actual} a {cantidad}'
-                    
+
                     historicos = historico_base_teorica.objects.filter(
                         cargo = cargo
                     )
-                
-                if criticidad_actual != criticidad:
-                    cargo.criticidad = criticidad
-                    action = f'Actualizó la criticidad del cargo {cargo.descripcion.upper()} de {criticidad_actual} a {criticidad}'
-                    
+
+                if tap_actual != tap:
+                    cargo.tap = tap
+                    action = f'Actualizó el TAP del cargo {cargo.descripcion.upper()} de {tap_actual} a {tap}'
+
                     historicos = historico_base_teorica.objects.filter(
                         cargo = cargo
                     )
@@ -894,26 +890,26 @@ def parameters(request):
                 area_ = request.POST.get('area')
                 descripcion = request.POST.get('descripcion-cargo')
                 cantidad_estructura = request.POST.get('cantidad-estructura-nuevo-cargo')
-                criticidad = request.POST.get('criticidad_cargo')
+                tap = request.POST.get('tap_cargo')
                 area_= area.objects.get(pk=area_)
-                
+
                 check_cargo = cargos_personal.objects.filter(
                     descripcion__iexact=descripcion,
                     area = area_,
                 ).exists()
-                
+
                 if check_cargo:
                     data = {
                         'class': 'error',
                         'message': f'El cargo {descripcion.upper()} ya existe en el area {area_.descripcion}'
                     }
-                    return JsonResponse(data) 
-                
+                    return JsonResponse(data)
+
                 cargo = cargos_personal.objects.create(
                     descripcion = descripcion.upper(),
                     area = area_,
                     cantidad_aprobada = cantidad_estructura,
-                    criticidad = criticidad,
+                    tap = tap,
                 )
                 
                 data = {
@@ -1060,13 +1056,13 @@ def dashboard(request):
                 dependencia_descripcion=F('area__estructura__dependecia__descripcion'),
             ).values_list(
                 'id', 'descripcion', 'area_id', 'activo', 'cantidad_aprobada',
-                'criticidad', 'actual', 'diferencia',
+                'tap', 'actual', 'diferencia',
                 'area_descripcion', 'estructura_descripcion', 'dependencia_descripcion',
             )
 
             cargos_list = list(cargos)
             nombres = ['id', 'descripcion', 'area_id', 'activo', 'cantidad_aprobada',
-                       'criticidad', 'actual', 'diferencia',
+                       'tap', 'actual', 'diferencia',
                        'area', 'estructura', 'dependecia']
             cargos_list.insert(0, nombres)
 
