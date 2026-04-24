@@ -1040,7 +1040,7 @@ def dashboard(request):
             
         elif todo == 'getRotationData':
             today = datetime.date.today()
-            tres_meses = today - datetime.timedelta(days=90)
+
             entradas = contratos_personal.objects.filter(
                 fecha_inicio__year=today.year,
                 fecha_inicio__month=today.month,
@@ -1051,19 +1051,56 @@ def dashboard(request):
                 fecha_retiro__month=today.month,
                 activo=False,
             ).values('trabajador').distinct().count()
-            salidas_3m_qs = contratos_personal.objects.filter(
-                fecha_retiro__gte=tres_meses,
-                activo=False,
-            )
-            salidas_por_cargo = list(
-                salidas_3m_qs.values('cargo__descripcion')
-                .annotate(total=Count('id'))
-                .order_by('-total')
-            )
+
+            # Headcount mensual por cargo en los últimos 6 meses
+            headcount_por_cargo = {}
+            for i in range(6):
+                month = today.month - i
+                year = today.year
+                while month <= 0:
+                    month += 12
+                    year -= 1
+                first_day = datetime.date(year, month, 1)
+                last_day = datetime.date(year, month, calendar.monthrange(year, month)[1])
+                mes_activos = contratos_personal.objects.filter(
+                    fecha_inicio__lte=last_day,
+                ).filter(
+                    Q(activo=True) | Q(fecha_retiro__gte=first_day)
+                ).values('cargo__descripcion').annotate(count=Count('trabajador', distinct=True))
+                for item in mes_activos:
+                    cargo = item['cargo__descripcion']
+                    headcount_por_cargo.setdefault(cargo, []).append(item['count'])
+
+            # Salidas en los últimos 6 meses por cargo
+            seis_meses = today - datetime.timedelta(days=180)
+            salidas_6m = {
+                item['cargo__descripcion']: item['total']
+                for item in contratos_personal.objects.filter(
+                    fecha_retiro__gte=seis_meses,
+                    activo=False,
+                ).values('cargo__descripcion').annotate(total=Count('id'))
+            }
+
+            # % rotación = salidas_6m / promedio_mensual × 100
+            rotacion = []
+            for cargo, counts in headcount_por_cargo.items():
+                salidas = salidas_6m.get(cargo, 0)
+                if salidas == 0:
+                    continue
+                avg = sum(counts) / len(counts)
+                if avg > 0:
+                    rotacion.append({
+                        'cargo': cargo,
+                        'pct': round(salidas / avg * 100, 1),
+                        'salidas': salidas,
+                        'avg_headcount': round(avg, 1),
+                    })
+            rotacion.sort(key=lambda x: -x['pct'])
+
             return JsonResponse({
                 'entradas': entradas,
                 'salidas': salidas_mes,
-                'salidas_por_cargo': salidas_por_cargo,
+                'salidas_por_cargo': rotacion,
             })
 
         elif todo == 'getpositionsData':

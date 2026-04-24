@@ -67,7 +67,7 @@
       <div id="ch-contrato" class="chart-box"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
     </div>
     <div class="card" id="c-rot-cargo">
-      <div class="card-hdr">Top 5 Cargos — % Rotación (últimos 3 meses)</div>
+      <div class="card-hdr">Top 5 Cargos — % Rotación (últimos 6 meses)</div>
       <div id="ch-rot-cargo" class="chart-box chart-box-pie"><div class="chart-loader"><div class="chart-spinner"></div></div></div>
     </div>
     <div class="card" id="c-antiguedad">
@@ -327,26 +327,16 @@
       });
     }
 
-    /* ── Top 5 Cargos — % Rotación del mes ── */
-    var activosPorCargo = {};
-    rows.forEach(function (r) {
-      var cargo = r[8] || 'Sin dato';
-      activosPorCargo[cargo] = (activosPorCargo[cargo] || 0) + 1;
-    });
-
-    var rotCargos = (rotRaw.salidas_por_cargo || [])
-      .filter(function (d) { return d.cargo__descripcion && activosPorCargo[d.cargo__descripcion] > 0; })
+    /* ── Top 5 Cargos — % Rotación (últimos 6 meses) ── */
+    var rotCargos = (rotRaw.salidas_por_cargo || []).slice(0, 5)
       .map(function (d) {
-        var pct = Math.round(d.total / activosPorCargo[d.cargo__descripcion] * 100);
-        return { name: d.cargo__descripcion, salidas: d.total, pct: pct };
-      })
-      .sort(function (a, b) { return b.pct - a.pct; })
-      .slice(0, 5);
+        return { name: d.cargo, salidas: d.salidas, pct: d.pct, avg: d.avg_headcount };
+      });
 
     if (rotCargos.length === 0) {
       document.getElementById('ch-rot-cargo').innerHTML =
         '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#10b981;font-weight:700;font-size:1.1em;">' +
-        '<i class="check circle icon"></i>&nbsp;Sin retiros en los últimos 3 meses</div>';
+        '<i class="check circle icon"></i>&nbsp;Sin retiros en los últimos 6 meses</div>';
     } else {
       Highcharts.chart('ch-rot-cargo', {
         chart: { type: 'bar' },
@@ -372,8 +362,8 @@
         tooltip: {
           formatter: function () {
             var d = rotCargos[this.point.index];
-            return '<b>' + this.x + '</b><br/>Salidas: <b>' + d.salidas + '</b><br/>Activos: <b>' +
-                   activosPorCargo[this.x] + '</b><br/>Rotación: <b>' + this.y + '%</b>';
+            return '<b>' + this.x + '</b><br/>Salidas 6m: <b>' + d.salidas + '</b><br/>' +
+                   'Promedio mensual: <b>' + d.avg + '</b><br/>Rotación: <b>' + this.y + '%</b>';
           }
         }
       });
