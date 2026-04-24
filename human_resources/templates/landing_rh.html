@@ -18,11 +18,15 @@
         <div class="kpi-val kpi-skel" id="v-total"></div>
       </div>
     </div>
-    <div class="kpi-card" id="k-vacantes">
-      <div class="kpi-ico"><i class="briefcase icon"></i></div>
+    <div class="kpi-card" id="k-rotacion">
+      <div class="kpi-ico"><i class="exchange icon"></i></div>
       <div class="kpi-body">
-        <div class="kpi-lbl">Vacantes abiertas</div>
-        <div class="kpi-val kpi-skel" id="v-vacantes"></div>
+        <div class="kpi-lbl">Rotación del mes</div>
+        <div id="v-rotacion" class="kpi-rot-row">
+          <span class="kpi-rot-item kpi-rot-in"><i class="arrow up icon"></i><span class="kpi-skel" id="v-entradas">&nbsp;&nbsp;&nbsp;&nbsp;</span></span>
+          <span class="kpi-rot-sep">·</span>
+          <span class="kpi-rot-item kpi-rot-out"><i class="arrow down icon"></i><span class="kpi-skel" id="v-salidas">&nbsp;&nbsp;&nbsp;&nbsp;</span></span>
+        </div>
       </div>
     </div>
     <div class="kpi-card">
@@ -111,15 +115,17 @@
   });
 
   async function run() {
-    const [hrResp, posResp] = await Promise.all([
+    const [hrResp, posResp, rotResp] = await Promise.all([
       fetch('/humanresources/dashboard/?todo=getHRdata'),
-      fetch('/humanresources/dashboard/?todo=getpositionsData')
+      fetch('/humanresources/dashboard/?todo=getpositionsData'),
+      fetch('/humanresources/dashboard/?todo=getRotationData')
     ]);
 
-    if (!hrResp.ok || !posResp.ok) throw new Error('Error de red al obtener datos.');
+    if (!hrResp.ok || !posResp.ok || !rotResp.ok) throw new Error('Error de red al obtener datos.');
 
     const hrRaw  = await hrResp.json();
     const posRaw = await posResp.json();
+    const rotRaw = await rotResp.json();
 
     /* hrRaw[0] is the header row; data starts at index 1
        Columns: 0=nombre, 1=sexo, 2=fecha_inicio, 3=tipo_ingreso,
@@ -136,20 +142,23 @@
     const total   = rows.length;
     const nomina  = rows.reduce(function (s, r) { return s + (r[15] || 0); }, 0);
     const avg     = nomina / total;
-    const vacantes = pos.reduce(function (s, r) { return s + (r[7] > 0 ? r[7] : 0); }, 0);
 
     function setKpi(id, value) {
       var el = document.getElementById(id);
       el.classList.remove('kpi-skel');
       el.textContent = value;
     }
-    setKpi('v-total',   total.toLocaleString('es-CO'));
-    setKpi('v-vacantes', vacantes.toLocaleString('es-CO'));
-    setKpi('v-nomina',  fmtMoney(nomina));
-    setKpi('v-avg',     fmtMoney(avg));
+    setKpi('v-total',  total.toLocaleString('es-CO'));
+    setKpi('v-nomina', fmtMoney(nomina));
+    setKpi('v-avg',    fmtMoney(avg));
 
-    var vacCard = document.getElementById('k-vacantes');
-    vacCard.classList.add(vacantes === 0 ? 'kpi-ok' : vacantes < 10 ? 'kpi-warn' : 'kpi-alert');
+    /* ── Rotación ── */
+    var elEntradas = document.getElementById('v-entradas');
+    var elSalidas  = document.getElementById('v-salidas');
+    elEntradas.classList.remove('kpi-skel');
+    elSalidas.classList.remove('kpi-skel');
+    elEntradas.textContent = rotRaw.entradas;
+    elSalidas.textContent  = rotRaw.salidas;
 
     /* ── HC por Gerencia ── */
     var gerencia = countBy(rows, 11);
@@ -235,7 +244,7 @@
       salStats[g].count++;
       salStats[g].total += r[15] || 0;
     });
-    var salEntries = Object.entries(salStats).sort(function (a, b) { return b[1].count - a[1].count; });
+    var salEntries = Object.entries(salStats).sort(function (a, b) { return a[0].localeCompare(b[0], undefined, { numeric: true }); });
     var salCats   = salEntries.map(function (e) { return e[0]; });
     var salCounts = salEntries.map(function (e) { return e[1].count; });
     var salAvgs   = salEntries.map(function (e) { return Math.round(e[1].total / e[1].count); });
@@ -312,7 +321,7 @@
 
   run().catch(function (err) {
     console.error(err);
-    ['v-total','v-vacantes','v-nomina','v-avg'].forEach(function (id) {
+    ['v-total','v-nomina','v-avg'].forEach(function (id) {
       var el = document.getElementById(id);
       el.classList.remove('kpi-skel');
       el.textContent = '—';
@@ -363,6 +372,24 @@
 .kpi-ok    .kpi-ico { color: #10b981; }
 .kpi-warn  .kpi-ico { color: #f59e0b; }
 .kpi-alert .kpi-ico { color: #ef4444; }
+
+.kpi-rot-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.kpi-rot-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 1.5em;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.kpi-rot-in  { color: #10b981; }
+.kpi-rot-out { color: #ef4444; }
+.kpi-rot-sep { color: #cbd5e1; font-size: 1.4em; font-weight: 300; }
 
 .kpi-lbl {
   font-size: .72em;

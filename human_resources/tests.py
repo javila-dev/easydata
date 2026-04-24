@@ -1,8 +1,12 @@
 import datetime
+import importlib.util
+import os
+import tempfile
 from types import SimpleNamespace
 
 from django.contrib.auth.models import User
 from django.test import SimpleTestCase, TestCase
+from openpyxl import Workbook
 
 from human_resources.models import (
     arl,
@@ -400,3 +404,152 @@ class HumanResourcesRegressionTests(TestCase):
         self.assertEqual(len(payload["data"]), 2)
         self.assertEqual(payload["data"][0]["name"], "Empresa Dos")
         self.assertEqual(payload["data"][1]["name"], "Empresa Uno")
+
+
+class SyncHrCargosFromExcelTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        spec = importlib.util.spec_from_file_location(
+            "sync_hr_cargos_from_excel",
+            "/code/scripts/sync_hr_cargos_from_excel.py",
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        cls.sync_module = module
+
+    def setUp(self):
+        dep = dependencia.objects.create(descripcion="Dep Sync")
+        self.struct_oper = estructura.objects.create(descripcion="OPERACIONES", dependecia=dep)
+        self.area_sedes = area.objects.create(descripcion="O16 SEDES", estructura=self.struct_oper)
+
+        self.used_cargo = cargo.objects.create(
+            descripcion="OPERARIO DE SEDE",
+            area=self.area_sedes,
+            cantidad_aprobada=10,
+            criticidad="MEDIA",
+            tipo_posicion="HC",
+        )
+        self.excel_update_cargo = cargo.objects.create(
+            descripcion="AUXILIAR DE SEDE",
+            area=self.area_sedes,
+            cantidad_aprobada=3,
+            criticidad="MEDIA",
+            tipo_posicion="HC",
+        )
+        self.delete_cargo = cargo.objects.create(
+            descripcion="CARGO SOLO DB",
+            area=self.area_sedes,
+            cantidad_aprobada=1,
+            criticidad="MEDIA",
+            tipo_posicion="HC",
+        )
+
+        depto = departamento.objects.create(nombre="Depto Sync")
+        city = ciudad.objects.create(nombre="Ciudad Sync", departamento=depto)
+        arl_obj = arl.objects.create(nombre="ARL Sync")
+        ccf_obj = ccf.objects.create(nombre="CCF Sync")
+        worker = base_personal.objects.create(
+            numero_identificacion=99901,
+            tipo_id="CC",
+            primer_nombre="ANA",
+            primer_apellido="PEREZ",
+            arl=arl_obj,
+            tipo_riesgo="0.522",
+            ccf=ccf_obj,
+            ciudad=city,
+            departamento=depto,
+            sexo="F",
+        )
+        employer = empleadores.objects.create(nombre="Empresa Sync")
+        site = sede.objects.create(descripcion="Sede Sync")
+        contratos_personal.objects.create(
+            trabajador=worker,
+            fecha_inicio="2026-01-01",
+            tipo_ingreso="V",
+            modalidad_ingreso="NUEVO INGRESO DIRECTO",
+            tipo_contrato="Indefinido",
+            empleador=employer,
+            cargo=self.used_cargo,
+            area=self.area_sedes,
+            sede=site,
+            salario_base=2000000,
+            activo_desde="2026-01-01",
+            activo=True,
+        )
+
+    def _build_excel(self, rows):
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "BD PERSONAL"
+        ws.append(["ESTRUCTURA", "AREA", "CARGO", "ESTADO", "NOMBRE COMPLETO", "TAP", "TIPO DE POSICION"])
+        for row in rows:
+            ws.append(row)
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
+        wb.save(tmp.name)
+        tmp.close()
+        self.addCleanup(lambda: os.unlink(tmp.name))
+        return tmp.name
+
+    def test_build_snapshot_counts_active_and_vacante_rows(self):
+        excel_path = self._build_excel([
+            ["OPERATIVO", "O16 SEDES", "AUXILIAR DE SEDE", "ACTIVO", "ANA PEREZ", "MEDIO", "HC"],
+            ["OPERATIVO", "O16 SEDES", "AUXILIAR DE SEDE", "VACANTE", "VACANTE", "MEDIO", "HC"],
+            ["OPERATIVO", "O16 SEDES", "AUXILIAR DE SEDE", "INACTIVO VACANTE", "PERSONA", "ALTO", "HC PLUS"],
+            ["OPERATIVO", "O16 SEDES", "AUXILIAR DE SEDE", "INACTIVO", "VACANTE AUXILIAR", "ALTO", "HC PLUS"],
+            ["OPERATIVO", "O16 SEDES", "AUXILIAR DE SEDE", "INACTIVO", "PERSONA", "BAJO", "HC"],
+            ["OPERATIVO", "O16 SEDES", "", "ACTIVO", "SIN CARGO", "", ""],
+            ["SIN MAPEO", "O16 SEDES", "IGNORADO", "ACTIVO", "TEST", "", ""],
+        ])
+
+        snapshot = self.sync_module.build_snapshot(excel_path, "BD PERSONAL")
+        key = ("OPERACIONES", "O16 SEDES", "AUXILIAR DE SEDE")
+
+        self.assertEqual(snapshot["countable_by_key"][key], 4)
+        self.assertEqual(snapshot["rows_by_structure"]["OPERACIONES"], 6)
+        self.assertEqual(self.sync_module.most_common_value(snapshot["tap_by_key"][key]), "ALTO")
+        self.assertEqual(self.sync_module.most_common_value(snapshot["tipo_posicion_by_key"][key]), "HC PLUS")
+
+    def test_plan_sync_classifies_create_update_delete_and_keep(self):
+        excel_path = self._build_excel([
+            ["OPERATIVO", "O16 SEDES", "AUXILIAR DE SEDE", "ACTIVO", "ANA PEREZ", "MEDIO", "HC"],
+            ["OPERATIVO", "O16 SEDES", "AUXILIAR DE SEDE", "VACANTE", "VACANTE", "MEDIO", "HC"],
+            ["OPERATIVO", "O16 SEDES", "CARGO NUEVO", "INACTIVO", "VACANTE CARGO", "ALTO", "HC PLUS"],
+        ])
+
+        snapshot = self.sync_module.build_snapshot(excel_path, "BD PERSONAL")
+        sync_plan = self.sync_module.plan_sync(snapshot)
+
+        self.assertEqual(sync_plan["summary"]["to_create"], 1)
+        self.assertEqual(sync_plan["summary"]["to_update"], 1)
+        self.assertEqual(sync_plan["summary"]["to_delete"], 1)
+        self.assertEqual(sync_plan["summary"]["used_outside_excel"], 1)
+        self.assertEqual(sync_plan["to_create"][0]["cargo"], "CARGO NUEVO")
+        self.assertEqual(sync_plan["to_create"][0]["cantidad_aprobada"], 1)
+        self.assertEqual(sync_plan["to_create"][0]["tipo_posicion"], "HC PLUS")
+        self.assertEqual(sync_plan["to_update"][0]["new_cantidad_aprobada"], 2)
+        self.assertEqual(sync_plan["to_delete"][0]["cargo"], "CARGO SOLO DB")
+        self.assertEqual(sync_plan["kept_used_outside_excel"][0]["cargo"], "OPERARIO DE SEDE")
+
+    def test_apply_sync_updates_creates_and_deletes(self):
+        excel_path = self._build_excel([
+            ["OPERATIVO", "O16 SEDES", "AUXILIAR DE SEDE", "ACTIVO", "ANA PEREZ", "MEDIO", "HC"],
+            ["OPERATIVO", "O16 SEDES", "AUXILIAR DE SEDE", "VACANTE", "VACANTE", "MEDIO", "HC"],
+            ["OPERATIVO", "O16 SEDES", "CARGO NUEVO", "INACTIVO", "VACANTE CARGO", "ALTO", "HC PLUS"],
+        ])
+        snapshot = self.sync_module.build_snapshot(excel_path, "BD PERSONAL")
+        sync_plan = self.sync_module.plan_sync(snapshot)
+
+        with tempfile.TemporaryDirectory() as backup_dir:
+            result = self.sync_module.apply_sync(sync_plan, backup_dir)
+
+        self.excel_update_cargo.refresh_from_db()
+        self.assertEqual(self.excel_update_cargo.cantidad_aprobada, 2)
+        self.assertTrue(cargo.objects.filter(descripcion="CARGO NUEVO", area=self.area_sedes).exists())
+        self.assertFalse(cargo.objects.filter(pk=self.delete_cargo.pk).exists())
+        self.assertTrue(cargo.objects.filter(pk=self.used_cargo.pk).exists())
+        self.assertEqual(result["updated_cargos"], 1)
+        self.assertEqual(result["created_cargos"], 1)
+        self.assertEqual(result["deleted_cargos"], 1)
+        self.assertEqual(result["skipped_protected_deletes"], [])

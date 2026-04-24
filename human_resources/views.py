@@ -1032,27 +1032,45 @@ def dashboard(request):
             data.insert(0,nombres)
             return JsonResponse(data,safe=False)
             
+        elif todo == 'getRotationData':
+            today = datetime.date.today()
+            entradas = contratos_personal.objects.filter(
+                fecha_inicio__year=today.year,
+                fecha_inicio__month=today.month,
+                trabajador__activo=True,
+            ).values('trabajador').distinct().count()
+            salidas = contratos_personal.objects.filter(
+                fecha_retiro__year=today.year,
+                fecha_retiro__month=today.month,
+                activo=False,
+            ).values('trabajador').distinct().count()
+            return JsonResponse({'entradas': entradas, 'salidas': salidas})
+
         elif todo == 'getpositionsData':
-            
+
             cargos = cargos_personal.objects.filter(activo=True).annotate(
-                actual = Count(Case(When(
-                    contratos_personal__activo= True,
-                    then = 1
+                actual=Count(Case(When(
+                    contratos_personal__activo=True,
+                    then=1
                 )))
             ).annotate(
-                diferencia = F('cantidad_aprobada') - F('actual'),
-                area_descripcion = F('area__descripcion'),
-                estructura_descripcion = F('area__estructura__descripcion'),
-                dependencia_descripcion = F('area__estructura__dependecia__descripcion'),
-            ).values_list()
-            
+                diferencia=F('cantidad_aprobada') - F('actual'),
+                area_descripcion=F('area__descripcion'),
+                estructura_descripcion=F('area__estructura__descripcion'),
+                dependencia_descripcion=F('area__estructura__dependecia__descripcion'),
+            ).values_list(
+                'id', 'descripcion', 'area_id', 'activo', 'cantidad_aprobada',
+                'criticidad', 'actual', 'diferencia',
+                'area_descripcion', 'estructura_descripcion', 'dependencia_descripcion',
+            )
+
             cargos_list = list(cargos)
-            nombres = ['id','descripcion','area_id','activo','cantidad_aprobada',
-                       'criticidad','actual','diferencia',
-                       'area','estructura','dependecia']
-            cargos_list.insert(0,nombres)
-            
-            return JsonResponse(cargos_list,safe=False)    
+            nombres = ['id', 'descripcion', 'area_id', 'activo', 'cantidad_aprobada',
+                       'criticidad', 'actual', 'diferencia',
+                       'area', 'estructura', 'dependecia']
+            cargos_list.insert(0, nombres)
+
+            return JsonResponse(cargos_list, safe=False)
     
     return HttpResponse()
 
