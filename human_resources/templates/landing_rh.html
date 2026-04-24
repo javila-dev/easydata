@@ -346,8 +346,7 @@
         series: [{
           name: '% Rotación',
           data: rotCargos.map(function (d, i) {
-            var color = d.pct >= 50 ? '#ef4444' : d.pct >= 25 ? '#f59e0b' : PALETTE[i % PALETTE.length];
-            return { y: d.pct, color: color };
+            return { y: d.pct, color: PALETTE[i % PALETTE.length] };
           }),
           dataLabels: {
             enabled: true,
