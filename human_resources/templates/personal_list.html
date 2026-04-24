@@ -688,10 +688,8 @@
       workersSearch.css({
         marginBottom: 0
       })
-      workersPageLengthSelect.dropdown({
-        onChange: function(value){
-          table_workers.page.len(Number(value)).draw()
-        }
+      workersPageLengthSelect.dropdown('setting', 'onChange', function(value){
+        table_workers.page.len(Number(value)).draw()
       })
       
       /* Tables interactions */
