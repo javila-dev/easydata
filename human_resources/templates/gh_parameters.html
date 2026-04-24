@@ -511,7 +511,7 @@ $(document).ready(function () {
         api.rows().every(function () {
             var d    = this.data();
             var $row = $(this.node());
-            if (!mostrarSinEstructura && d.cantidad_aprobada == 0) {
+            if (!mostrarSinEstructura && d.cantidad_aprobada == 0 && d.cantidad_actual == 0) {
                 $row.hide();
             } else {
                 $row.show();
