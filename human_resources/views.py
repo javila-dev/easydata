@@ -7,10 +7,26 @@ import threading
 import traceback
 import unicodedata
 import dateutil
+from copy import copy as copy_style
 from django.conf import settings
 from django.http import FileResponse, HttpResponse, JsonResponse
 from django.db.models.query_utils import Q
-from django.db.models import Sum, Count, F, Case, When, IntegerField, Func, Prefetch
+from django.db.models import (
+    Sum,
+    Count,
+    F,
+    Case,
+    When,
+    IntegerField,
+    Func,
+    Prefetch,
+    OuterRef,
+    Subquery,
+    Value,
+    CharField,
+    FloatField,
+)
+from django.db.models.functions import Cast, Coalesce, Concat
 from django.shortcuts import render
 from django.db import transaction
 from django.db.models.deletion import ProtectedError
@@ -45,6 +61,660 @@ def landing(request):
 
     return render(request, 'landing_rh.html', context)
 
+
+def get_workers_base_queryset(active, retired):
+    if active and retired:
+        personal = base_personal.objects.all()
+    elif active:
+        personal = base_personal.objects.filter(activo=True)
+    elif retired:
+        personal = base_personal.objects.filter(activo=False)
+    else:
+        return base_personal.objects.none()
+
+    base_contracts = contratos_personal.objects.filter(
+        trabajador=OuterRef('pk')
+    ).order_by('-fecha_inicio', '-id')
+    active_contracts = base_contracts.filter(activo=True)
+
+    personal = personal.annotate(
+        full_name_order=Concat(
+            'primer_nombre',
+            Value(' '),
+            Coalesce('segundo_nombre', Value('')),
+            Value(' '),
+            'primer_apellido',
+            Value(' '),
+            Coalesce('segundo_apellido', Value('')),
+            output_field=CharField(),
+        ),
+        numero_identificacion_text=Cast('numero_identificacion', output_field=CharField()),
+        latest_contract_cargo=Subquery(base_contracts.values('cargo__descripcion')[:1]),
+        latest_contract_area=Subquery(base_contracts.values('area__descripcion')[:1]),
+        latest_contract_structure=Subquery(base_contracts.values('area__estructura__descripcion')[:1]),
+        latest_contract_salary=Subquery(base_contracts.values('salario_base')[:1]),
+        latest_contract_type=Subquery(base_contracts.values('tipo_ingreso')[:1]),
+        active_contract_cargo=Subquery(active_contracts.values('cargo__descripcion')[:1]),
+        active_contract_area=Subquery(active_contracts.values('area__descripcion')[:1]),
+        active_contract_structure=Subquery(active_contracts.values('area__estructura__descripcion')[:1]),
+        active_contract_salary=Subquery(active_contracts.values('salario_base')[:1]),
+        active_contract_type=Subquery(active_contracts.values('tipo_ingreso')[:1]),
+    ).annotate(
+        contract_cargo_order=Case(
+            When(activo=True, then=F('active_contract_cargo')),
+            default=F('latest_contract_cargo'),
+            output_field=CharField(),
+        ),
+        contract_area_order=Case(
+            When(activo=True, then=F('active_contract_area')),
+            default=F('latest_contract_area'),
+            output_field=CharField(),
+        ),
+        contract_structure_order=Case(
+            When(activo=True, then=F('active_contract_structure')),
+            default=F('latest_contract_structure'),
+            output_field=CharField(),
+        ),
+        contract_salary_order=Case(
+            When(activo=True, then=F('active_contract_salary')),
+            default=F('latest_contract_salary'),
+            output_field=FloatField(),
+        ),
+        contract_type_order=Case(
+            When(activo=True, then=F('active_contract_type')),
+            default=F('latest_contract_type'),
+            output_field=CharField(),
+        ),
+    ).annotate(
+        contract_type_label_order=Case(
+            When(contract_type_order='T', then=Value('Temporal')),
+            When(contract_type_order='A', then=Value('Aprendizaje')),
+            When(contract_type_order='V', then=Value('Vinculado')),
+            default=Value(''),
+            output_field=CharField(),
+        ),
+        activo_label_order=Case(
+            When(activo=True, then=Value('Activo')),
+            default=Value('Retirado'),
+            output_field=CharField(),
+        ),
+    )
+
+    return personal
+
+
+def get_workers_table_queryset(active, retired):
+    return get_workers_base_queryset(active, retired).select_related(
+        'eps',
+        'pension',
+        'cesantias',
+        'arl',
+        'ccf',
+        'ciudad',
+        'departamento',
+    ).prefetch_related(
+        Prefetch(
+            'trabajador',
+            queryset=contratos_personal.objects.select_related(
+                'empleador',
+                'temporal',
+                'cargo',
+                'area',
+                'area__estructura',
+                'area__estructura__dependecia',
+                'canal',
+                'cceco',
+                'sede',
+                'ciudad_laboral',
+                'ciudad_laboral__departamento',
+                'jefe_inmediato',
+                'motivo_retiro',
+            ).prefetch_related(
+                'auxilios_contrato_set__tipo',
+            ).order_by('fecha_inicio', 'id'),
+            to_attr='prefetched_contracts',
+        ),
+        Prefetch(
+            'quien_ingresa',
+            queryset=empalmes.objects.select_related('quien_sale').order_by('-fecha_fin', '-id'),
+            to_attr='prefetched_empalmes_ingreso',
+        ),
+    )
+
+
+WORKERS_SEARCHBUILDER_FIELD_MAP = {
+    'numero_identificacion': 'numero_identificacion_text',
+    'numero_identificacion_text': 'numero_identificacion_text',
+    'get_full_name': 'full_name_order',
+    'full_name_order': 'full_name_order',
+    'contrato_activo.cargo.descripcion': 'contract_cargo_order',
+    'contract_cargo_order': 'contract_cargo_order',
+    'contrato_activo.area.descripcion': 'contract_area_order',
+    'contract_area_order': 'contract_area_order',
+    'contrato_activo.area.estructura.descripcion': 'contract_structure_order',
+    'contract_structure_order': 'contract_structure_order',
+    'contrato_activo.salario_base': 'contract_salary_order',
+    'contract_salary_order': 'contract_salary_order',
+    'contrato_activo.tipo_ingreso': 'contract_type_label_order',
+    'contract_type_order': 'contract_type_order',
+    'contract_type_label_order': 'contract_type_label_order',
+    'activo': 'activo_label_order',
+    'activo_label_order': 'activo_label_order',
+}
+
+
+def parse_nested_querydict(querydict, root_key):
+    if root_key in querydict:
+        raw_value = querydict.get(root_key)
+        if raw_value:
+            try:
+                return json.loads(raw_value)
+            except json.JSONDecodeError:
+                return raw_value
+
+    data = {}
+    for key in querydict.keys():
+        if not key.startswith(f'{root_key}['):
+            continue
+
+        parts = re.findall(r'\[([^\]]*)\]', key[len(root_key):])
+        if not parts:
+            continue
+
+        current = data
+        for index, part in enumerate(parts):
+            is_last = index == len(parts) - 1
+            next_is_index = index + 1 < len(parts) and parts[index + 1].isdigit()
+
+            if part.isdigit():
+                part_index = int(part)
+                while len(current) <= part_index:
+                    current.append(None)
+                if is_last:
+                    current[part_index] = querydict.get(key)
+                else:
+                    if current[part_index] is None:
+                        current[part_index] = [] if next_is_index else {}
+                    current = current[part_index]
+            else:
+                if is_last:
+                    current[part] = querydict.get(key)
+                else:
+                    if part not in current or current[part] is None:
+                        current[part] = [] if next_is_index else {}
+                    current = current[part]
+
+    return data or None
+
+
+def coerce_searchbuilder_value(raw_value, criterion_type, model_field):
+    if raw_value in (None, ''):
+        return None
+
+    criterion_type = (criterion_type or 'string').lower()
+    if criterion_type.startswith('num'):
+        try:
+            return float(str(raw_value).replace(',', ''))
+        except (TypeError, ValueError):
+            return None
+
+    return str(raw_value).strip()
+
+
+def build_searchbuilder_null_q(model_field):
+    return Q(**{f'{model_field}__isnull': True}) | Q(**{model_field: ''})
+
+
+def build_searchbuilder_leaf_q(criterion):
+    field_name = (
+        criterion.get('origData')
+        or criterion.get('dataOrig')
+        or criterion.get('data')
+    )
+    model_field = WORKERS_SEARCHBUILDER_FIELD_MAP.get(field_name)
+    if not model_field:
+        return Q()
+
+    criterion_type = criterion.get('type') or 'string'
+    condition = criterion.get('condition')
+    values = criterion.get('value') or []
+    parsed_values = [
+        coerce_searchbuilder_value(value, criterion_type, model_field)
+        for value in values
+    ]
+    parsed_values = [value for value in parsed_values if value is not None]
+
+    if condition == 'null':
+        return build_searchbuilder_null_q(model_field)
+    if condition == '!null':
+        return ~build_searchbuilder_null_q(model_field)
+
+    if not parsed_values:
+        return Q()
+
+    first_value = parsed_values[0]
+    second_value = parsed_values[1] if len(parsed_values) > 1 else first_value
+    criterion_type = criterion_type.lower()
+
+    if criterion_type.startswith('num'):
+        operations = {
+            '=': Q(**{model_field: first_value}),
+            '!=': ~Q(**{model_field: first_value}),
+            '<': Q(**{f'{model_field}__lt': first_value}),
+            '<=': Q(**{f'{model_field}__lte': first_value}),
+            '>': Q(**{f'{model_field}__gt': first_value}),
+            '>=': Q(**{f'{model_field}__gte': first_value}),
+            'between': Q(**{f'{model_field}__gte': first_value, f'{model_field}__lte': second_value}),
+            '!between': ~Q(**{f'{model_field}__gte': first_value, f'{model_field}__lte': second_value}),
+        }
+        return operations.get(condition, Q())
+
+    lookup_operations = {
+        '=': Q(**{f'{model_field}__iexact': first_value}),
+        '!=': ~Q(**{f'{model_field}__iexact': first_value}),
+        'contains': Q(**{f'{model_field}__icontains': first_value}),
+        '!contains': ~Q(**{f'{model_field}__icontains': first_value}),
+        'starts': Q(**{f'{model_field}__istartswith': first_value}),
+        '!starts': ~Q(**{f'{model_field}__istartswith': first_value}),
+        'ends': Q(**{f'{model_field}__iendswith': first_value}),
+        '!ends': ~Q(**{f'{model_field}__iendswith': first_value}),
+    }
+    return lookup_operations.get(condition, Q())
+
+
+def build_searchbuilder_q(group):
+    if not isinstance(group, dict):
+        return Q()
+
+    criteria = group.get('criteria') or []
+    logic = (group.get('logic') or 'AND').upper()
+    result = Q()
+    initialized = False
+
+    for criterion in criteria:
+        if isinstance(criterion, dict) and criterion.get('criteria'):
+            criterion_q = build_searchbuilder_q(criterion)
+        else:
+            criterion_q = build_searchbuilder_leaf_q(criterion)
+
+        if not initialized:
+            result = criterion_q
+            initialized = True
+        elif logic == 'OR':
+            result |= criterion_q
+        else:
+            result &= criterion_q
+
+    return result if initialized else Q()
+
+
+def apply_workers_datatable_filters(personal, request):
+    search_value = (request.GET.get('search[value]') or '').strip()
+    if search_value:
+        personal = personal.filter(
+            Q(numero_identificacion_text__icontains=search_value)
+            | Q(primer_nombre__icontains=search_value)
+            | Q(segundo_nombre__icontains=search_value)
+            | Q(primer_apellido__icontains=search_value)
+            | Q(segundo_apellido__icontains=search_value)
+            | Q(contract_cargo_order__icontains=search_value)
+            | Q(contract_area_order__icontains=search_value)
+            | Q(contract_structure_order__icontains=search_value)
+            | Q(contract_type_label_order__icontains=search_value)
+            | Q(activo_label_order__icontains=search_value)
+        )
+
+    searchbuilder_payload = parse_nested_querydict(request.GET, 'searchBuilder')
+    if searchbuilder_payload:
+        personal = personal.filter(build_searchbuilder_q(searchbuilder_payload))
+
+    order_map = {
+        '0': 'numero_identificacion',
+        '1': 'full_name_order',
+        '2': 'contract_cargo_order',
+        '3': 'contract_area_order',
+        '4': 'contract_structure_order',
+        '5': 'contract_salary_order',
+        '6': 'contract_type_label_order',
+        '7': 'activo_label_order',
+    }
+    order_column = request.GET.get('order[0][column]', '1')
+    order_field = order_map.get(order_column, 'full_name_order')
+    if request.GET.get('order[0][dir]') == 'desc':
+        order_field = f'-{order_field}'
+
+    return personal.order_by(order_field, 'numero_identificacion')
+
+
+WORKERS_BD_PERSONAL_HEADERS = [
+    'EMPLEADOR',
+    'CODIGO',
+    'TIPO INGRESO',
+    'TIPO ID',
+    'ID',
+    'NOMBRE COMPLETO',
+    'CARGO',
+    'TAP',
+    'ESTADO',
+    'EMPALME',
+    'TIPO DE EMPALME',
+    'F.LIMITE EMPALME',
+    'PERSONA QUE REEMPLAZA',
+    'TIPO DE POSICION',
+    'MODALIDAD DE INGRESO',
+    'EMPLEADOR',
+    'TIPO DE CONTRATO',
+    'ESTRUCTURA',
+    'GERENCIA ',
+    'AREA',
+    'CODIGO CENTRO DE COSTOS',
+    'CENTRO DE COSTOS',
+    'JEFE INMEDIATO',
+    'CARGO JEFE INMEDIATO',
+    'F.INGRESO',
+    'PERIODO DE PRUEBA',
+    'MES DE INGRESO',
+    'AÑO',
+    'UBICACION',
+    'CIUDAD',
+    'TIPO DE SALARIO',
+    'SALARIO',
+    'AUX TTE',
+    'AUX MOVILIZACION',
+    'AUXILIOS',
+    'TIPO AUXILIO',
+    'TIPO BONIFICACION',
+    'BASE VARIABLE',
+    'EPS',
+    'AFP',
+    'CESANTIAS',
+    'ARL',
+    '% RIESGO',
+    'CCF',
+    'EMAIL',
+    'DIR.RESIDENCIA',
+    'CIUDAD RESIDENCIA',
+    'CELULAR',
+    'OTRO CONTACTO',
+    '¿VIVIENDA PROPIA?',
+    'NIVEL EDUCATIVO ',
+    'PROFESION/CARRERA',
+    'SEXO',
+    'RH',
+    'ESTADO CIVIL',
+    'F NACIM',
+    'EDAD',
+    'MES NACIMIENTO',
+    'TALLA CAMISA',
+    'TALLA PANTALON',
+    'TALLA CALZADO',
+    'FECHA RETIRO',
+    'MES DE RETIRO',
+    'AÑO RETIRO',
+    'MOTIVO DEL RETIRO',
+    'MOTIVO REAL TERMINACION(CONFIDENCIAL)',
+]
+
+MONTH_NAMES_ES = {
+    1: 'ENERO',
+    2: 'FEBRERO',
+    3: 'MARZO',
+    4: 'ABRIL',
+    5: 'MAYO',
+    6: 'JUNIO',
+    7: 'JULIO',
+    8: 'AGOSTO',
+    9: 'SEPTIEMBRE',
+    10: 'OCTUBRE',
+    11: 'NOVIEMBRE',
+    12: 'DICIEMBRE',
+}
+
+
+def copy_openpyxl_cell_style(source_cell, target_cell):
+    if source_cell.has_style:
+        target_cell._style = copy_style(source_cell._style)
+    if source_cell.number_format:
+        target_cell.number_format = source_cell.number_format
+    if source_cell.alignment:
+        target_cell.alignment = copy_style(source_cell.alignment)
+
+
+def build_workers_export_workbook():
+    template_path = settings.BASE_DIR / 'Data personal activo.xlsx'
+    template_ws = None
+    if template_path.exists():
+        try:
+            template_wb = openpyxl.load_workbook(template_path)
+            template_ws = template_wb['BD PERSONAL']
+        except Exception:
+            template_ws = None
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'BD PERSONAL'
+
+    for col_index, header in enumerate(WORKERS_BD_PERSONAL_HEADERS, start=1):
+        cell = ws.cell(row=1, column=col_index, value=header)
+        if template_ws is not None:
+            source_cell = template_ws.cell(row=1, column=col_index)
+            if source_cell.value is not None:
+                cell.value = source_cell.value
+            copy_openpyxl_cell_style(source_cell, cell)
+            column_letter = cell.column_letter
+            width = template_ws.column_dimensions[column_letter].width
+            if width:
+                ws.column_dimensions[column_letter].width = width
+        else:
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="9ACBE6", end_color="9ACBE6", fill_type="solid")
+            cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    if template_ws is not None:
+        ws.row_dimensions[1].height = template_ws.row_dimensions[1].height
+        ws.freeze_panes = template_ws.freeze_panes
+    else:
+        widths = [16, 12, 14, 10, 15, 32, 28, 12, 12, 12, 18, 16, 30, 18, 28, 25, 20,
+                  22, 24, 30, 24, 34, 30, 30, 14, 18, 16, 10, 22, 18, 16, 14, 14, 18,
+                  14, 24, 24, 16, 24, 24, 24, 24, 12, 24, 32, 42, 24, 16, 18, 18, 22,
+                  24, 10, 10, 20, 14, 12, 18, 14, 16, 16, 14, 16, 10, 28, 36]
+        for width, col_index in zip(widths, range(1, len(WORKERS_BD_PERSONAL_HEADERS) + 1)):
+            ws.column_dimensions[ws.cell(row=1, column=col_index).column_letter].width = width
+
+    return wb, ws, template_ws
+
+
+def safe_export_value(value):
+    return '' if value in (None, 'None') else value
+
+
+def related_text(obj, field_name='nombre'):
+    if obj is None:
+        return ''
+    return safe_export_value(getattr(obj, field_name, ''))
+
+
+def export_month_name(value):
+    if not value:
+        return ''
+    return MONTH_NAMES_ES.get(value.month, '')
+
+
+def export_age(value, today=None):
+    if not value:
+        return ''
+    today = today or timezone.localdate()
+    years = today.year - value.year - ((today.month, today.day) < (value.month, value.day))
+    return f'{years} años'
+
+
+def export_tipo_vivienda(value):
+    if not value:
+        return ''
+    return 'SI' if value == 'Propia' else 'NO'
+
+
+def worker_contract_for_export(worker):
+    contract = worker.contrato_activo(type='model')
+    return contract if isinstance(contract, contratos_personal) else None
+
+
+def worker_empalme_for_export(worker):
+    prefetched_empalmes = getattr(worker, 'prefetched_empalmes_ingreso', None)
+    if prefetched_empalmes is not None:
+        return prefetched_empalmes[0] if prefetched_empalmes else None
+    return empalmes.objects.filter(quien_ingresa=worker).select_related('quien_sale').order_by('-fecha_fin', '-id').first()
+
+
+def contract_auxilios_for_export(contract):
+    if contract is None:
+        return '', '', ''
+
+    aux_movilizacion = 0
+    aux_otros = 0
+    tipos_otros = []
+    for auxilio in contract.auxilios_contrato_set.all():
+        tipo = related_text(auxilio.tipo, 'descripcion')
+        tipo_key = unicodedata.normalize('NFKD', tipo).encode('ascii', 'ignore').decode('ascii').upper()
+        if 'MOVILIZACION' in tipo_key:
+            aux_movilizacion += auxilio.valor or 0
+        else:
+            aux_otros += auxilio.valor or 0
+            if tipo:
+                tipos_otros.append(tipo)
+
+    return (
+        aux_movilizacion or '',
+        aux_otros or '',
+        ', '.join(tipos_otros),
+    )
+
+
+def jefe_cargo_for_export(jefe):
+    if jefe is None:
+        return ''
+    contract = jefe.contrato_activo(type='model')
+    if isinstance(contract, contratos_personal) and contract.cargo:
+        return related_text(contract.cargo, 'descripcion')
+    return ''
+
+
+def worker_bd_personal_row(worker):
+    contract = worker_contract_for_export(worker)
+    empalme = worker_empalme_for_export(worker)
+    aux_movilizacion, aux_otros, tipo_auxilio = contract_auxilios_for_export(contract)
+
+    fecha_ingreso = contract.fecha_inicio if contract else None
+    fecha_periodo_prueba = contract.fecha_periodo_prueba if contract else None
+    if not fecha_periodo_prueba and fecha_ingreso:
+        fecha_periodo_prueba = fecha_ingreso + datetime.timedelta(days=60)
+    fecha_retiro = contract.fecha_retiro if contract else None
+
+    estructura_obj = contract.area.estructura if contract and contract.area else None
+    dependencia_obj = estructura_obj.dependecia if estructura_obj else None
+    cceco_obj = contract.cceco if contract else None
+    jefe = contract.jefe_inmediato if contract else None
+
+    return [
+        related_text(contract.empleador) if contract else '',
+        safe_export_value(worker.codigo_sap),
+        safe_export_value(contract.tipo_ingreso) if contract else '',
+        safe_export_value(worker.tipo_id),
+        worker.numero_identificacion,
+        worker.get_full_name(),
+        related_text(contract.cargo, 'descripcion') if contract else '',
+        safe_export_value(contract.cargo.tap) if contract and contract.cargo else '',
+        'ACTIVO' if worker.activo else 'INACTIVO',
+        'SI' if empalme else 'NO',
+        safe_export_value(empalme.motivo).upper() if empalme else 'NO APLICA',
+        empalme.fecha_fin if empalme else '',
+        empalme.quien_sale.get_full_name() if empalme and empalme.quien_sale else '',
+        safe_export_value(contract.tipo_posicion or contract.cargo.tipo_posicion) if contract and contract.cargo else '',
+        safe_export_value(contract.modalidad_ingreso) if contract else '',
+        related_text(contract.temporal) if contract and contract.temporal else '',
+        safe_export_value(contract.tipo_contrato) if contract else '',
+        related_text(estructura_obj, 'descripcion'),
+        related_text(dependencia_obj, 'descripcion'),
+        related_text(contract.area, 'descripcion') if contract else '',
+        safe_export_value(cceco_obj.codigo_sap) if cceco_obj else '',
+        related_text(cceco_obj, 'descripcion'),
+        jefe.get_full_name() if jefe else '',
+        jefe_cargo_for_export(jefe),
+        fecha_ingreso,
+        fecha_periodo_prueba,
+        export_month_name(fecha_ingreso),
+        fecha_ingreso.year if fecha_ingreso else '',
+        related_text(contract.sede, 'descripcion') if contract else '',
+        related_text(contract.ciudad_laboral, 'nombre') if contract else '',
+        'ORDINARIO' if contract else '',
+        contract.salario_base if contract else '',
+        safe_export_value(contract.auxilio_transporte) if contract else '',
+        aux_movilizacion,
+        aux_otros,
+        tipo_auxilio,
+        safe_export_value(contract.bonificacion) if contract else '',
+        safe_export_value(contract.base_bonificacion) if contract else '',
+        related_text(worker.eps),
+        related_text(worker.pension),
+        related_text(worker.cesantias),
+        related_text(worker.arl),
+        safe_export_value(worker.tipo_riesgo),
+        related_text(worker.ccf),
+        safe_export_value(worker.email),
+        safe_export_value(worker.direccion_residencia),
+        related_text(worker.ciudad, 'nombre'),
+        safe_export_value(worker.contacto),
+        safe_export_value(worker.contacto_otro),
+        export_tipo_vivienda(worker.tipo_vivienda),
+        safe_export_value(worker.nivel_educativo),
+        safe_export_value(worker.titulo),
+        safe_export_value(worker.sexo),
+        safe_export_value(worker.rh),
+        safe_export_value(worker.estado_civil),
+        worker.fecha_nacimiento,
+        export_age(worker.fecha_nacimiento),
+        export_month_name(worker.fecha_nacimiento),
+        safe_export_value(worker.talla_camisa),
+        safe_export_value(worker.talla_pantalon),
+        safe_export_value(worker.talla_calzado),
+        fecha_retiro,
+        export_month_name(fecha_retiro),
+        fecha_retiro.year if fecha_retiro else '',
+        related_text(contract.motivo_retiro, 'descripcion') if contract else '',
+        safe_export_value(contract.motivo_retiro_real) if contract else '',
+    ]
+
+
+def export_workers_bd_personal_response(personal):
+    wb, ws, template_ws = build_workers_export_workbook()
+    date_columns = {12, 25, 26, 56, 62}
+    money_columns = {32, 33, 34, 35, 38}
+    data_style_row = 2
+
+    for row_index, worker in enumerate(personal, start=2):
+        values = worker_bd_personal_row(worker)
+        for col_index, value in enumerate(values, start=1):
+            cell = ws.cell(row=row_index, column=col_index, value=value)
+            if template_ws is not None:
+                copy_openpyxl_cell_style(template_ws.cell(row=data_style_row, column=col_index), cell)
+            if col_index in date_columns:
+                cell.number_format = 'dd/mm/yyyy'
+            elif col_index in money_columns:
+                cell.number_format = '#,##0'
+
+    if ws.max_row > 1:
+        ws.auto_filter.ref = f'A1:{ws.cell(row=1, column=len(WORKERS_BD_PERSONAL_HEADERS)).column_letter}{ws.max_row}'
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    timestamp = timezone.localtime().strftime('%Y%m%d_%H%M%S')
+    response['Content-Disposition'] = (
+        f'attachment; filename="data_personal_filtrado_{timestamp}.xlsx"'
+    )
+    wb.save(response)
+    return response
+
 @login_required
 @rol_permission('Gestion humana')
 def human_resources(request):
@@ -56,54 +726,46 @@ def human_resources(request):
             if todo == 'getworkers':
                 active = True if request.GET.get('active') == 'true' else False
                 retired = True if request.GET.get('retired') == 'true' else False
-                
-                if active and retired:
-                    personal = base_personal.objects.all()
-                elif active:
-                    personal = base_personal.objects.filter(activo=True)
-                elif retired:
-                    personal = base_personal.objects.filter(activo=False)
-                else:
-                    personal = base_personal.objects.none()
 
-                personal = personal.select_related(
-                    'eps',
-                    'pension',
-                    'cesantias',
-                    'arl',
-                    'ccf',
-                    'ciudad',
-                    'departamento',
-                ).prefetch_related(
-                    Prefetch(
-                        'trabajador',
-                        queryset=contratos_personal.objects.select_related(
-                            'empleador',
-                            'temporal',
-                            'cargo',
-                            'area',
-                            'area__estructura',
-                            'canal',
-                            'cceco',
-                            'sede',
-                            'ciudad_laboral',
-                            'ciudad_laboral__departamento',
-                            'jefe_inmediato',
-                            'motivo_retiro',
-                        ).prefetch_related(
-                            'auxilios_contrato_set__tipo',
-                        ).order_by('fecha_inicio', 'id'),
-                        to_attr='prefetched_contracts',
+                personal = get_workers_table_queryset(active, retired)
+
+                draw = int(request.GET.get('draw', 0) or 0)
+                if draw:
+                    total_records = personal.count()
+                    personal = apply_workers_datatable_filters(personal, request)
+                    filtered_records = personal.count()
+
+                    start = max(int(request.GET.get('start', 0) or 0), 0)
+                    length = int(request.GET.get('length', 10) or 10)
+                    if length > 0:
+                        personal = personal[start:start + length]
+
+                    render_json = JsonRender(
+                        personal,
+                        query_functions=('get_full_name', 'contrato_activo',),
                     )
+                    return JsonResponse({
+                        'draw': draw,
+                        'recordsTotal': total_records,
+                        'recordsFiltered': filtered_records,
+                        'data': render_json.render(),
+                    })
+
+                render_json = JsonRender(
+                    personal,
+                    query_functions=('get_full_name', 'contrato_activo',),
                 )
-                    
-                render_json = JsonRender(personal,
-                            query_functions = ('get_full_name','contrato_activo',))
-                data = {
+                return JsonResponse({
                     'data': render_json.render()
-                }
-                
-                return JsonResponse(data)
+                })
+
+            elif todo == 'export_workers_excel':
+                active = True if request.GET.get('active') == 'true' else False
+                retired = True if request.GET.get('retired') == 'true' else False
+                personal = get_workers_table_queryset(active, retired)
+                personal = apply_workers_datatable_filters(personal, request)
+
+                return export_workers_bd_personal_response(personal)
 
             elif todo == 'getworkerhistory':
                 numero_id = request.GET.get('numero_id')

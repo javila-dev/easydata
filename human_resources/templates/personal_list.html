@@ -13,24 +13,34 @@
   border-bottom-width: 0px;border-left-width: 0px;border-top-width: 0px;border-right-width: 0px;">
   
     <div class="ui basic segment" style="margin-top: 0;">
-      <button type="button" class="ui button teal labeled icon" id="btn-add-worker">
-        <i class="plus icon"></i> Agregar
-      </button>
-      <button type="button" class="ui button teal labeled icon" id="btn-check-workers">
-        <i class="eye outline icon"></i>Verificar base
-      </button>
-      <button type="button" class="ui button teal labeled icon" id="btn-import-workers">
-        <i class="file upload icon"></i>Carga masiva
-      </button>
-      <div class="ui toggle checkbox" id="div-include-active" style="margin-left: 1rem;">
-        <input type="checkbox" checked="checked" name="include-active" id="id-include-active">
-        <label>Personal Activo</label>
+      <div id="workers-table-actions" style="display:none;">
+        <button type="button" class="ui button teal labeled icon" id="btn-add-worker">
+          <i class="plus icon"></i> Agregar
+        </button>
+        <button type="button" class="ui button teal labeled icon" id="btn-check-workers">
+          <i class="eye outline icon"></i>Verificar base
+        </button>
       </div>
-      <div class="ui toggle checkbox" id="div-include-retired" style="margin-left: 1rem;">
-        <input type="checkbox" name="include-retired" id="id-include-retired">
-        <label>Personal Retirado</label>
+      <div id="workers-table-filters" style="display:none;">
+        <div class="ui inline fields" id="workers-page-length-control" style="margin:0;">
+          <label style="margin-right:0.5rem;">Registros</label>
+          <select class="ui compact dropdown" id="workers-page-length-select">
+            <option value="10">10</option>
+            <option value="25" selected>25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+        <div class="ui toggle checkbox" id="div-include-active">
+          <input type="checkbox" checked="checked" name="include-active" id="id-include-active">
+          <label>Ver activos</label>
+        </div>
+        <div class="ui toggle checkbox" id="div-include-retired">
+          <input type="checkbox" name="include-retired" id="id-include-retired">
+          <label>Ver retirados</label>
+        </div>
       </div>
-      <div class="ui long scrolling fluid container" style="margin-bottom: 2rem;max-height: 78vh;">
+      <div class="ui fluid container" id="workers-table-container" style="margin-bottom: 2rem;">
         <table class="ui first head stuck selectable very compact table" id="table_workers">
             <thead>
                 <tr>
@@ -288,16 +298,249 @@
         });*/
       $('#historicos-tab-menu .item').tab()
       /* Datatables */  
+      function workerTypeLabel(value){
+        const tipos = {
+          'T': 'Temporal',
+          'A': 'Aprendizaje',
+          'V': 'Vinculado'
+        }
+
+        return tipos[value] || ''
+      }
+
+      function workerStatusLabel(value){
+        return value == 'True' ? 'Activo' : 'Retirado'
+      }
+
+      function workerSalaryValue(value){
+        return Number(value || 0)
+      }
+
+      function workerSalaryDisplay(value){
+        return new Intl.NumberFormat('en-EN').format(workerSalaryValue(value))
+      }
+
+      function buildWorkerExportRow(row){
+        return {
+          numero_identificacion: row.numero_identificacion || '',
+          get_full_name: row.get_full_name || '',
+          cargo: row.contrato_activo?.cargo?.descripcion || '',
+          area: row.contrato_activo?.area?.descripcion || '',
+          estructura: row.contrato_activo?.area?.estructura?.descripcion || '',
+          salario_base: workerSalaryValue(row.contrato_activo?.salario_base),
+          tipo_ingreso: workerTypeLabel(row.contrato_activo?.tipo_ingreso),
+          activo: workerStatusLabel(row.activo)
+        }
+      }
+
+      function getWorkersExportFilename(suffix){
+        const now = new Date()
+        const stamp = now.toISOString().slice(0, 19).replace(/[:T]/g, '-')
+        return `personal-${suffix}-${stamp}`
+      }
+
+      function runWorkersExport(exportType, dt, buttonNode){
+        const currentParams = typeof dt.ajax.params === 'function' ? dt.ajax.params() : {}
+        const requestData = $.extend(true, {}, currentParams, {
+          start: 0,
+          length: -1
+        })
+
+        $(buttonNode).addClass('loading disabled')
+
+        $.ajax({
+          type: 'GET',
+          url: dt.ajax.url(),
+          data: requestData,
+          success: function(response){
+            const exportRows = (response.data || []).map(buildWorkerExportRow)
+            const $host = $('<div style="display:none;"></div>').appendTo('body')
+            const $table = $('<table></table>').appendTo($host)
+            const exportButtonConfig = {
+              extend: exportType,
+              title: 'Detalle personal',
+              filename: getWorkersExportFilename(exportType),
+              exportOptions: {
+                orthogonal: 'export'
+              }
+            }
+
+            const tempTable = new DataTable($table[0], {
+              data: exportRows,
+              paging: false,
+              searching: false,
+              info: false,
+              ordering: false,
+              layout: {
+                topStart: {
+                  buttons: [exportButtonConfig]
+                }
+              },
+              columns: [
+                {data: 'numero_identificacion', title: 'Id'},
+                {data: 'get_full_name', title: 'Nombre'},
+                {data: 'cargo', title: 'Cargo'},
+                {data: 'area', title: 'Area'},
+                {data: 'estructura', title: 'Estructura'},
+                {
+                  data: 'salario_base',
+                  title: 'Salario',
+                  render: function(data, type){
+                    return type === 'display' ? workerSalaryDisplay(data) : workerSalaryValue(data)
+                  }
+                },
+                {data: 'tipo_ingreso', title: 'Tipo'},
+                {data: 'activo', title: 'Estado'}
+              ]
+            })
+
+            tempTable.button(0).trigger()
+
+            window.setTimeout(function(){
+              tempTable.destroy()
+              $host.remove()
+            }, 500)
+          },
+          error: function(){
+            $.toast({
+              displayTime: 'auto',
+              showProgress: 'top',
+              class: 'error',
+              classProgress: 'error',
+              message: 'No fue posible exportar la informacion filtrada'
+            })
+          },
+          complete: function(){
+            $(buttonNode).removeClass('loading disabled')
+          }
+        })
+      }
+
+      function getFilenameFromDisposition(disposition, fallback){
+        if (!disposition){
+          return fallback
+        }
+        const filenameMatch = disposition.match(/filename="?([^"]+)"?/)
+        return filenameMatch ? filenameMatch[1] : fallback
+      }
+
+      function buildWorkersBdPersonalExportUrl(dt){
+        const ajaxUrl = new URL(dt.ajax.url(), window.location.origin)
+        const exportUrl = new URL('/humanresources/workers/', window.location.origin)
+        ajaxUrl.searchParams.forEach(function(value, key){
+          exportUrl.searchParams.set(key, value)
+        })
+        exportUrl.searchParams.set('todo', 'export_workers_excel')
+
+        const currentParams = typeof dt.ajax.params === 'function' ? dt.ajax.params() : {}
+        const requestData = $.extend(true, {}, currentParams)
+        delete requestData.start
+        delete requestData.length
+        const queryString = $.param(requestData)
+        let url = exportUrl.toString()
+        if (queryString){
+          url += (url.indexOf('?') === -1 ? '?' : '&') + queryString
+        }
+        return url
+      }
+
+      function runWorkersBdPersonalExport(dt, buttonNode){
+        const fallbackFilename = `${getWorkersExportFilename('bd-personal')}.xlsx`
+        $(buttonNode).addClass('loading disabled')
+
+        fetch(buildWorkersBdPersonalExportUrl(dt), {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        })
+        .then(function(response){
+          if (!response.ok){
+            throw new Error('export_failed')
+          }
+          const filename = getFilenameFromDisposition(
+            response.headers.get('Content-Disposition'),
+            fallbackFilename
+          )
+          return response.blob().then(function(blob){
+            return {blob: blob, filename: filename}
+          })
+        })
+        .then(function(file){
+          const downloadUrl = window.URL.createObjectURL(file.blob)
+          const link = document.createElement('a')
+          link.href = downloadUrl
+          link.download = file.filename
+          document.body.appendChild(link)
+          link.click()
+          link.remove()
+          window.setTimeout(function(){
+            window.URL.revokeObjectURL(downloadUrl)
+          }, 500)
+        })
+        .catch(function(){
+          $.toast({
+            displayTime: 'auto',
+            showProgress: 'top',
+            class: 'error',
+            classProgress: 'error',
+            message: 'No fue posible exportar la informacion filtrada'
+          })
+        })
+        .finally(function(){
+          $(buttonNode).removeClass('loading disabled')
+        })
+      }
+
+      function triggerWorkersAction(buttonSelector){
+        $(buttonSelector).trigger('click')
+      }
+
       var table_workers = new DataTable('#table_workers', {
         processing: true,
-        paging: false,
+        serverSide: true,
+        paging: true,
+        lengthChange: true,
+        pageLength: 25,
+        lengthMenu: [10, 25, 50, 100],
+        searchDelay: 400,
         order: [[1, 'asc']],
         buttons: [
-                'copy', 'excel', 'pdf'
-            ],
+          {
+            text: 'Agregar',
+            className: 'ui button teal',
+            action: function(){
+              triggerWorkersAction('#btn-add-worker')
+            }
+          },
+          {
+            text: 'Verificar base',
+            className: 'ui button teal',
+            action: function(){
+              triggerWorkersAction('#btn-check-workers')
+            }
+          },
+          {
+            text: 'Copiar',
+            className: 'buttons-copy',
+            action: function(e, dt, button){
+              runWorkersExport('copyHtml5', dt, button)
+            }
+          },
+          {
+            text: 'Excel',
+            className: 'buttons-excel',
+            action: function(e, dt, button){
+              runWorkersBdPersonalExport(dt, button)
+            }
+          }
+        ],
         layout: {
             topStart: 'buttons',
+            topEnd: 'search',
             top1: 'searchBuilder'
+        },
+        searchBuilder: {
+          columns: [0, 1, 2, 3, 4, 5, 6, 7]
         },
         language: {
             searchBuilder: {
@@ -327,42 +570,128 @@
               dataSrc: "data"
         },
         columns:[
-          {'data':'numero_identificacion'},
-          {'data':'get_full_name'},
-          {'data':'contrato_activo.cargo.descripcion', defaultContent: ''},
-          {'data':'contrato_activo.area.descripcion', defaultContent: ''},
-          {'data':'contrato_activo.area.estructura.descripcion', defaultContent: ''},
-          {'data':'contrato_activo.salario_base',
-            render: function(data){
-              const numericValue = Number(data || 0)
-              return new Intl.NumberFormat('en-EN').format(numericValue)
+          {
+            data:'numero_identificacion',
+            name:'numero_identificacion',
+            searchBuilderType: 'string'
+          },
+          {
+            data:'get_full_name',
+            name:'get_full_name',
+            searchBuilderType: 'string'
+          },
+          {
+            data:'contrato_activo.cargo.descripcion',
+            name:'contrato_activo.cargo.descripcion',
+            searchBuilderType: 'string',
+            defaultContent: ''
+          },
+          {
+            data:'contrato_activo.area.descripcion',
+            name:'contrato_activo.area.descripcion',
+            searchBuilderType: 'string',
+            defaultContent: ''
+          },
+          {
+            data:'contrato_activo.area.estructura.descripcion',
+            name:'contrato_activo.area.estructura.descripcion',
+            searchBuilderType: 'string',
+            defaultContent: ''
+          },
+          {
+            data:'contrato_activo.salario_base',
+            name:'contrato_activo.salario_base',
+            searchBuilderType: 'num',
+            render: function(data, type){
+              if (type === 'display'){
+                return workerSalaryDisplay(data)
+              }
+              return workerSalaryValue(data)
             }
           },
-          {'data':'contrato_activo.tipo_ingreso',
-            render: function(data, type, row){
-              const tipos = {
-                'T': 'Temporal',
-                'A': 'Aprendizaje',
-                'V': 'Vinculado'
-              }
-
-              return tipos[data] || ''
+          {
+            data:'contrato_activo.tipo_ingreso',
+            name:'contrato_activo.tipo_ingreso',
+            searchBuilderType: 'string',
+            render: function(data, type){
+              const label = workerTypeLabel(data)
+              return label
             }
           },
-          {'data':'activo',
-            render: function(data, type, row){
-              if (data == 'True'){
-                return '<i class="green checkmark icon"></i>'
-              }
-              else {
+          {
+            data:'activo',
+            name:'activo',
+            searchBuilderType: 'string',
+            render: function(data, type){
+              if (type === 'display'){
+                if (data == 'True'){
+                  return '<i class="green checkmark icon"></i>'
+                }
                 return '<i class="red x icon"></i>'
               }
+              return workerStatusLabel(data)
             }
           }
         ],
         columnDefs: [
             {targets:[7],className: 'center aligned'},
         ],
+      })
+
+      const workersTableFilters = $('#workers-table-filters')
+      const workersButtonsContainer = $(table_workers.buttons().container())
+      const workersTableWrapper = $('#table_workers_wrapper')
+      const workersTableRow = workersTableWrapper.find('.dt-layout-row').has('#table_workers').first()
+      const workersTopRow = workersTableWrapper.find('.dt-layout-row').has('.dt-buttons').first()
+      const workersTopEnd = workersTopRow.find('.dt-layout-end').first()
+      const workersSearch = workersTopEnd.find('.dt-search').first()
+      const workersPageLengthControl = $('#workers-page-length-control')
+      const workersPageLengthSelect = $('#workers-page-length-select')
+      $('#table_workers_wrapper .dt-length').remove()
+      workersButtonsContainer.css({
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        flexWrap: 'wrap'
+      })
+      workersTopRow.css({
+        alignItems: 'center'
+      })
+      workersTopEnd.css({
+        marginLeft: 'auto'
+      })
+      workersTableFilters.css({
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+        marginLeft: '0.5rem'
+      })
+      workersPageLengthControl.css({
+        display: 'inline-flex',
+        alignItems: 'center',
+        margin: 0,
+        marginRight: '0.75rem'
+      })
+      workersTableRow.css({
+        maxHeight: '78vh',
+        overflowY: 'auto',
+        marginBottom: '1rem'
+      })
+      workersButtonsContainer.append(workersTableFilters.show())
+      workersButtonsContainer.prepend(workersPageLengthControl.show())
+      workersTopEnd.css({
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        gap: '1rem'
+      })
+      workersSearch.css({
+        marginBottom: 0
+      })
+      workersPageLengthSelect.dropdown({
+        onChange: function(value){
+          table_workers.page.len(Number(value)).draw()
+        }
       })
       
       /* Tables interactions */

@@ -1,12 +1,13 @@
 import datetime
 import importlib.util
+import io
 import os
 import tempfile
 from types import SimpleNamespace
 
 from django.contrib.auth.models import User
 from django.test import SimpleTestCase, TestCase
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
 
 from human_resources.models import (
     arl,
@@ -364,6 +365,140 @@ class HumanResourcesRegressionTests(TestCase):
         worker = self._create_worker()
 
         self.assertEqual(worker.get_full_name(), "ANA PEREZ")
+
+    def test_getworkers_supports_serverside_pagination(self):
+        worker_one = self._create_worker(numero_identificacion=11111)
+        self._create_active_contract(worker_one)
+
+        worker_two = self._create_worker(numero_identificacion=22222)
+        self._create_active_contract(worker_two)
+
+        response = self.client.get(
+            "/humanresources/workers/",
+            {
+                "todo": "getworkers",
+                "active": "true",
+                "retired": "false",
+                "draw": 3,
+                "start": 0,
+                "length": 1,
+                "order[0][column]": 0,
+                "order[0][dir]": "asc",
+                "search[value]": "",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["draw"], 3)
+        self.assertEqual(payload["recordsTotal"], 2)
+        self.assertEqual(payload["recordsFiltered"], 2)
+        self.assertEqual(len(payload["data"]), 1)
+        self.assertEqual(payload["data"][0]["numero_identificacion"], 11111)
+
+    def test_getworkers_applies_searchbuilder_filters(self):
+        worker_one = self._create_worker(numero_identificacion=11111)
+        self._create_active_contract(worker_one)
+
+        worker_two = self._create_worker(numero_identificacion=22222)
+        self._create_active_contract(worker_two)
+
+        response = self.client.get(
+            "/humanresources/workers/",
+            {
+                "todo": "getworkers",
+                "active": "true",
+                "retired": "false",
+                "draw": 4,
+                "start": 0,
+                "length": 25,
+                "order[0][column]": 1,
+                "order[0][dir]": "asc",
+                "search[value]": "",
+                "searchBuilder[logic]": "AND",
+                "searchBuilder[criteria][0][condition]": "contains",
+                "searchBuilder[criteria][0][origData]": "contrato_activo.cargo.descripcion",
+                "searchBuilder[criteria][0][type]": "string",
+                "searchBuilder[criteria][0][value][0]": "11111",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["recordsTotal"], 2)
+        self.assertEqual(payload["recordsFiltered"], 1)
+        self.assertEqual(len(payload["data"]), 1)
+        self.assertEqual(payload["data"][0]["numero_identificacion"], 11111)
+
+    def test_export_workers_excel_respects_datatable_filters(self):
+        worker_one = self._create_worker(numero_identificacion=11111)
+        self._create_active_contract(worker_one)
+
+        worker_two = self._create_worker(numero_identificacion=22222)
+        self._create_active_contract(worker_two)
+
+        response = self.client.get(
+            "/humanresources/workers/",
+            {
+                "todo": "export_workers_excel",
+                "active": "true",
+                "retired": "false",
+                "order[0][column]": 0,
+                "order[0][dir]": "asc",
+                "search[value]": "11111",
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+        workbook = load_workbook(io.BytesIO(response.content), data_only=True)
+        worksheet = workbook["BD PERSONAL"]
+        headers = [worksheet.cell(row=1, column=i).value for i in range(1, 67)]
+
+        self.assertEqual(headers[0], "EMPLEADOR")
+        self.assertEqual(headers[4], "ID")
+        self.assertEqual(headers[5], "NOMBRE COMPLETO")
+        self.assertEqual(headers[65], "MOTIVO REAL TERMINACION(CONFIDENCIAL)")
+        self.assertEqual(worksheet.max_row, 2)
+        self.assertEqual(worksheet.cell(row=2, column=5).value, 11111)
+
+    def test_export_workers_excel_ignores_datatable_pagination(self):
+        worker_one = self._create_worker(numero_identificacion=11111)
+        self._create_active_contract(worker_one)
+
+        worker_two = self._create_worker(numero_identificacion=22222)
+        self._create_active_contract(worker_two)
+
+        response = self.client.get(
+            "/humanresources/workers/",
+            {
+                "todo": "export_workers_excel",
+                "active": "true",
+                "retired": "false",
+                "order[0][column]": 0,
+                "order[0][dir]": "asc",
+                "search[value]": "",
+                "start": 1,
+                "length": 1,
+            },
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
+        workbook = load_workbook(io.BytesIO(response.content), data_only=True)
+        worksheet = workbook["BD PERSONAL"]
+
+        self.assertEqual(worksheet.max_row, 3)
+        self.assertEqual(worksheet.cell(row=2, column=5).value, 11111)
+        self.assertEqual(worksheet.cell(row=3, column=5).value, 22222)
 
     def test_retire_worker_persists_real_reason(self):
         worker = self._create_worker(numero_identificacion=54321)
