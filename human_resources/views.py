@@ -473,11 +473,13 @@ MONTH_NAMES_ES = {
 
 def copy_openpyxl_cell_style(source_cell, target_cell):
     if source_cell.has_style:
-        target_cell._style = copy_style(source_cell._style)
+        target_cell.font = copy_style(source_cell.font)
+        target_cell.fill = copy_style(source_cell.fill)
+        target_cell.border = copy_style(source_cell.border)
+        target_cell.alignment = copy_style(source_cell.alignment)
+        target_cell.protection = copy_style(source_cell.protection)
     if source_cell.number_format:
         target_cell.number_format = source_cell.number_format
-    if source_cell.alignment:
-        target_cell.alignment = copy_style(source_cell.alignment)
 
 
 def build_workers_export_workbook():
@@ -506,8 +508,8 @@ def build_workers_export_workbook():
             if width:
                 ws.column_dimensions[column_letter].width = width
         else:
-            cell.font = Font(bold=True)
-            cell.fill = PatternFill(start_color="9ACBE6", end_color="9ACBE6", fill_type="solid")
+            cell.font = Font(bold=True, color="F2F2F2", name="Tahoma", size=7)
+            cell.fill = PatternFill(start_color="262626", end_color="262626", fill_type="solid")
             cell.alignment = Alignment(horizontal="center", vertical="center")
 
     if template_ws is not None:
@@ -710,7 +712,7 @@ def export_workers_bd_personal_response(personal):
     )
     timestamp = timezone.localtime().strftime('%Y%m%d_%H%M%S')
     response['Content-Disposition'] = (
-        f'attachment; filename="data_personal_filtrado_{timestamp}.xlsx"'
+        f'attachment; filename="data_personal_{timestamp}.xlsx"'
     )
     wb.save(response)
     return response

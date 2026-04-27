@@ -496,6 +496,30 @@
         $(buttonSelector).trigger('click')
       }
 
+      ;(function(){
+        const strNames = {
+          '=': 'Igual a', '!=': 'Diferente a',
+          'contains': 'Contiene', '!contains': 'No contiene',
+          'starts': 'Empieza con', '!starts': 'No empieza con',
+          'ends': 'Termina con', '!ends': 'No termina con',
+          'null': 'Vacío', '!null': 'No vacío'
+        }
+        const numNames = {
+          '=': 'Igual a', '!=': 'Diferente a',
+          '<': 'Menor que', '<=': 'Menor o igual que',
+          '>': 'Mayor que', '>=': 'Mayor o igual que',
+          'between': 'Entre', '!between': 'No entre',
+          'null': 'Vacío', '!null': 'No vacío'
+        }
+        const Criteria = DataTable?.SearchBuilder?.Criteria
+        if (Criteria) {
+          const sc = Criteria.stringConditions || {}
+          const nc = Criteria.numConditions || {}
+          Object.entries(strNames).forEach(([k, v]) => { if (sc[k]) sc[k].conditionName = v })
+          Object.entries(numNames).forEach(([k, v]) => { if (nc[k]) nc[k].conditionName = v })
+        }
+      })()
+
       var table_workers = new DataTable('#table_workers', {
         processing: true,
         serverSide: true,
@@ -563,33 +587,7 @@
                     _: 'Filtros (%d)'
                 },
                 value: 'Opción',
-                valueJoiner: 'es',
-                conditions: {
-                    string: {
-                        '=':        'Igual a',
-                        '!=':       'Diferente a',
-                        'contains': 'Contiene',
-                        '!contains':'No contiene',
-                        'starts':   'Empieza con',
-                        '!starts':  'No empieza con',
-                        'ends':     'Termina con',
-                        '!ends':    'No termina con',
-                        'null':     'Vacío',
-                        '!null':    'No vacío'
-                    },
-                    num: {
-                        '=':        'Igual a',
-                        '!=':       'Diferente a',
-                        '<':        'Menor que',
-                        '<=':       'Menor o igual que',
-                        '>':        'Mayor que',
-                        '>=':       'Mayor o igual que',
-                        'between':  'Entre',
-                        '!between': 'No entre',
-                        'null':     'Vacío',
-                        '!null':    'No vacío'
-                    }
-                }
+                valueJoiner: 'es'
             }
         },
         ajax:{
@@ -667,6 +665,7 @@
 
       const workersTableFilters = $('#workers-table-filters')
       const workersButtonsContainer = $(table_workers.buttons().container())
+      workersButtonsContainer.find('.buttons-excel').attr('title', 'Exportar según los filtros aplicados')
       const workersTableWrapper = $('#table_workers_wrapper')
       const workersTableRow = workersTableWrapper.find('.dt-layout-row').has('#table_workers').first()
       const workersTopRow = workersTableWrapper.find('.dt-layout-row').has('.dt-buttons').first()
@@ -813,26 +812,10 @@
         $('#id_email').val(line.email)
         $('#id_direccion').val(line.direccion_residencia)
         $('#id_departamento').dropdown('set value',line.departamento.id)
-        $.ajax({
-          type: "GET",
+        const reqCities = $.ajax({
+          type: 'GET',
           url: '/humanresources/utils/dependentlist',
-          data:{
-            todo:'citiesbystates',
-            estado:line.departamento.id
-          },
-          success: function(response){
-            $('#id_ciudad').parent('.ui.dropdown').dropdown({values:response.data});
-            $('#id_ciudad').dropdown('set selected',line.ciudad.id)
-          },
-          error: function(xhr, status, error){
-            $.toast({
-              displayTime: 'auto',
-              showProgress: 'top',
-              class: 'error',
-              classProgress: 'error',
-              message: 'Error al cargar las ciudades'
-            })
-          }
+          data: { todo: 'citiesbystates', estado: line.departamento.id }
         })
         $('#id_nivel_educativo').dropdown('set value',line.nivel_educativo)
         $('#id_rh').dropdown('set value',line.rh)
@@ -854,48 +837,16 @@
         $('#div_id_fecha_inicio').calendar('set date',line.contrato_activo.fecha_inicio)
         $('#div_id_fecha_fin_pp').calendar('set date',line.contrato_activo.fecha_periodo_prueba)
         $('#div_id_fecha_fin_cto').calendar('set date',line.contrato_activo.fecha_fin)
-        $('#id_estruct').dropdown('set value',line.contrato_activo.area.estructura.id)
-        $.ajax({
-          type: "GET",
+        $('#id_estruct').dropdown('set value', line.contrato_activo.area.estructura.id)
+        const reqAreas = $.ajax({
+          type: 'GET',
           url: '/humanresources/utils/dependentlist',
-          data:{
-            todo:'areasbyestructura',
-            estructura:line.contrato_activo.area.estructura.id
-          },
-          success: function(response){
-            $('#id_area').parent('.ui.dropdown').dropdown({values:response.data});
-            $('#id_area').dropdown('set value',line.contrato_activo.area.id)
-            $.ajax({
-              type: "GET",
-              url: '/humanresources/utils/dependentlist',
-              data:{
-                todo:'cargosbyarea',
-                area:line.contrato_activo.area.id
-              },
-              success: function(response){
-                $('#id_cargo').parent('.ui.dropdown').dropdown({values:response.data});
-                $('#id_cargo').dropdown('set value',line.contrato_activo.cargo.id)
-              },
-              error: function(xhr, status, error){
-                $.toast({
-                  displayTime: 'auto',
-                  showProgress: 'top',
-                  class: 'error',
-                  classProgress: 'error',
-                  message: 'Error al cargar los cargos'
-                })
-              }
-            })
-          },
-          error: function(xhr, status, error){
-            $.toast({
-              displayTime: 'auto',
-              showProgress: 'top',
-              class: 'error',
-              classProgress: 'error',
-              message: 'Error al cargar las áreas'
-            })
-          }
+          data: { todo: 'areasbyestructura', estructura: line.contrato_activo.area.estructura.id }
+        })
+        const reqCargos = $.ajax({
+          type: 'GET',
+          url: '/humanresources/utils/dependentlist',
+          data: { todo: 'cargosbyarea', area: line.contrato_activo.area.id }
         })
         $('#id_canal').dropdown('set value', nestedId(line.contrato_activo.canal))
         $('#id_cceco').dropdown('set value', nestedId(line.contrato_activo.cceco))
@@ -954,7 +905,25 @@
             $('#id_subarea').dropdown('set selected',line.subarea.id)
           }
         }) */
-        $('#modal-worker').modal('show')
+        $.when(reqCities, reqAreas, reqCargos).then(
+          function(resCities, resAreas, resCargos){
+            $('#id_ciudad').parent('.ui.dropdown').dropdown({values: resCities[0].data})
+            $('#id_ciudad').dropdown('set selected', line.ciudad.id)
+            $('#id_area').parent('.ui.dropdown').dropdown({values: resAreas[0].data})
+            $('#id_area').dropdown('set value', line.contrato_activo.area.id)
+            $('#id_cargo').parent('.ui.dropdown').dropdown({values: resCargos[0].data})
+            $('#id_cargo').dropdown('set value', line.contrato_activo.cargo.id)
+            $('#modal-worker').modal('show')
+          },
+          function(){
+            $.toast({
+              displayTime: 'auto', showProgress: 'top',
+              class: 'error', classProgress: 'error',
+              message: 'Error al cargar las listas dependientes'
+            })
+            $('#modal-worker').modal('show')
+          }
+        )
       })
       $('#table_workers tbody').on('contextmenu','tr',function(e){
           table_workers.$('tr.selected').removeClass('selected');
